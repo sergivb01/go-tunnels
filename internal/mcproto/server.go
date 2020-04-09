@@ -161,7 +161,7 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 	clientAddr net.Addr, preReadContent io.Reader, serverAddress string, h *Handshake) {
 
 	// backendHostPort, resolvedHost := Routes.FindBackendForServerAddress(serverAddress)
-	backendHostPort, err := ExtractHostPort(serverAddress)
+	host, port, err := ExtractHostPort(serverAddress)
 	if err != nil {
 		c.log.Error().
 			Err(err).
@@ -170,6 +170,7 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 			Msg("could not find backend")
 		return
 	}
+	backendHostPort := fmt.Sprintf("%s:%d", host, port)
 
 	c.log.Info().
 		Str("client", clientAddr.String()).
@@ -188,7 +189,7 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 	}
 
 	if h.ProtocolVersion != -1 && h.NextState == 2 {
-		b, err := h.EncodePacket("na.lunar.gg")
+		b, err := h.EncodePacket(host)
 		if err != nil {
 			c.log.Error().
 				Err(err).
