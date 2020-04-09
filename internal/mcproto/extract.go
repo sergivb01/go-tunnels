@@ -9,9 +9,10 @@ import (
 	"strings"
 )
 
-var CustomEnding = os.Getenv("CUSTOM_ENDING")
-
-var errNoSrvFound = errors.New("no srv record found")
+var (
+	CustomEnding  = os.Getenv("CUSTOM_ENDING")
+	errNoSrvFound = errors.New("no srv record found")
+)
 
 func ExtractHostPort(serverAddress string) (string, error) {
 	h := strings.TrimSuffix(serverAddress, "."+CustomEnding)

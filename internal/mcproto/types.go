@@ -49,6 +49,11 @@ const (
 	PacketIdLegacyServerListPing = 0xFE
 )
 
+type BasicPacket interface {
+	ServerAddress() string
+	SetServerAddress(s string)
+}
+
 type Handshake struct {
 	ProtocolVersion int
 	ServerAddress   string
@@ -56,14 +61,14 @@ type Handshake struct {
 	NextState       int
 }
 
-type LoginStart struct {
-	Name string
-}
-
 type LegacyServerListPing struct {
 	ProtocolVersion int
 	ServerAddress   string
 	ServerPort      uint16
+}
+
+type LoginStart struct {
+	Name string
 }
 
 type ByteReader interface {

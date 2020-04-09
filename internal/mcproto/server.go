@@ -26,7 +26,7 @@ func NewConnector() Connector {
 	return &connectorImpl{
 		log: zerolog.New(zerolog.NewConsoleWriter()).
 			With().Timestamp().
-			Logger().Level(zerolog.InfoLevel),
+			Logger().Level(zerolog.DebugLevel),
 	}
 }
 
@@ -113,6 +113,7 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 		Msg("received packet")
 
 	var serverAddress string
+	customHandshake := &Handshake{ProtocolVersion: -1}
 
 	switch packet.PacketID {
 	case PacketIdHandshake:
@@ -129,26 +130,7 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 			Interface("handshake", handshake).
 			Msg("received handshake")
 		serverAddress = handshake.ServerAddress
-
-		// TODO: cleanup this mess
-		if handshake.NextState != 2 {
-			break
-		}
-
-		// TODO: do not sleep, find a way to find out if the client has sent the packet
-		// time.Sleep(time.Millisecond * 1000)
-		//
-		// packet, err := ReadPacket(inspectionReader, clientAddr, 0)
-		// if err != nil {
-		// 	c.log.Error().Err(err).Msg("failed to read loginStart packet")
-		// 	break
-		// }
-		// loginStart, err := ReadLoginStart(packet.Data)
-		// if err != nil {
-		// 	c.log.Error().Err(err).Msg("failed to decode login start")
-		// 	break
-		// }
-		// c.log.Info().Str("playerName", loginStart.Name).Msg("LOGIN START DECODED")
+		customHandshake = handshake
 	case PacketIdLegacyServerListPing:
 		handshake, ok := packet.Data.(*LegacyServerListPing)
 		if !ok {
@@ -173,11 +155,11 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 		return
 	}
 
-	c.findAndConnectBackend(ctx, frontendConn, clientAddr, inspectionBuffer, serverAddress)
+	c.findAndConnectBackend(ctx, frontendConn, clientAddr, inspectionBuffer, serverAddress, customHandshake)
 }
 
 func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn net.Conn,
-	clientAddr net.Addr, preReadContent io.Reader, serverAddress string) {
+	clientAddr net.Addr, preReadContent io.Reader, serverAddress string, h *Handshake) {
 
 	// backendHostPort, resolvedHost := Routes.FindBackendForServerAddress(serverAddress)
 	backendHostPort, err := ExtractHostPort(serverAddress)
@@ -206,21 +188,45 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 		return
 	}
 
-	amount, err := io.Copy(backendConn, preReadContent)
-	if err != nil {
-		c.log.Error().
-			Err(err).
+	if h.ProtocolVersion != -1 && h.NextState == 2{
+		b, err := h.EncodePacket("na.lunar.gg")
+		if err != nil {
+			c.log.Error().
+				Err(err).
+				Str("client", clientAddr.String()).
+				Str("backendHostPort", backendHostPort).
+				Msg("failed to enconde custom handshake")
+		}
+		amount, err := backendConn.Write(b)
+		if err != nil {
+			c.log.Error().
+				Err(err).
+				Str("client", clientAddr.String()).
+				Str("backendHostPort", backendHostPort).
+				Msg("1234failed to write handshake to backend")
+			return
+		}
+		c.log.Debug().
 			Str("client", clientAddr.String()).
 			Str("backendHostPort", backendHostPort).
-			Msg("failed to write handshake to backend")
-		return
+			Int("amout", amount).
+			Msg("1234relayed handshake to backend")
+	} else {
+		amount, err := io.Copy(backendConn, preReadContent)
+		if err != nil {
+			c.log.Error().
+				Err(err).
+				Str("client", clientAddr.String()).
+				Str("backendHostPort", backendHostPort).
+				Msg("failed to write handshake to backend")
+			return
+		}
+		c.log.Debug().
+			Str("client", clientAddr.String()).
+			Str("backendHostPort", backendHostPort).
+			Int64("amout", amount).
+			Msg("relayed handshake to backend")
 	}
-
-	c.log.Debug().
-		Str("client", clientAddr.String()).
-		Str("backendHostPort", backendHostPort).
-		Int64("amout", amount).
-		Msg("relayed handshake to backend")
 
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		c.log.Error().

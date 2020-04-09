@@ -29,6 +29,25 @@ func (h *Handshake) EncodePacket(addr string) ([]byte, error) {
 	), nil
 }
 
+
+func (h *LegacyServerListPing) EncodePacket(addr string) ([]byte, error) {
+	out := new(bytes.Buffer)
+	out.Write(Uvarint(0))
+
+	// 	ProtocolVersion types.UVarint
+	//	ServerAddress   types.String
+	//	ServerPort      types.UShort
+	//	NextState       types.UVarint
+	WriteUVarInt(out, uint32(h.ProtocolVersion))
+	WriteString(out, addr)
+	WriteUShort(out, 25565)
+
+	return append(
+		Uvarint(uint32(out.Len())),
+		out.Bytes()...,
+	), nil
+}
+
 func WriteLong(w io.Writer, i int64) error {
 	return binary.Write(w, ByteOrder, i)
 }
