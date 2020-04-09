@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 	"time"
 
@@ -15,7 +14,7 @@ import (
 	"golang.org/x/text/transform"
 )
 
-func ReadPacket(reader io.Reader, addr net.Addr, state State) (*Packet, error) {
+func ReadPacket(reader io.Reader, state State) (*Packet, error) {
 	// logrus.
 	// 	WithField("client", addr).
 	// 	Debug("Reading packet")
@@ -24,17 +23,17 @@ func ReadPacket(reader io.Reader, addr net.Addr, state State) (*Packet, error) {
 		bufReader := bufio.NewReader(reader)
 		data, err := bufReader.Peek(1)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to peek: %w", err)
 		}
 
 		if data[0] == PacketIdLegacyServerListPing {
-			return ReadLegacyServerListPing(bufReader, addr)
+			return ReadLegacyServerListPing(bufReader)
 		} else {
 			reader = bufReader
 		}
 	}
 
-	frame, err := ReadFrame(reader, addr)
+	frame, err := ReadFrame(reader)
 	if err != nil {
 		return nil, fmt.Errorf("error reading frame: %w", err)
 	}
@@ -50,18 +49,10 @@ func ReadPacket(reader io.Reader, addr net.Addr, state State) (*Packet, error) {
 
 	packet.Data = remainder.Bytes()
 
-	// logrus.
-	// 	WithField("client", addr).
-	// 	WithField("packet", packet).
-	// 	Debug("Read packet")
 	return packet, nil
 }
 
-func ReadLegacyServerListPing(reader *bufio.Reader, addr net.Addr) (*Packet, error) {
-	// logrus.
-	// 	WithField("client", addr).
-	// 	Debug("Reading legacy server list ping")
-
+func ReadLegacyServerListPing(reader *bufio.Reader) (*Packet, error) {
 	packetId, err := reader.ReadByte()
 	if err != nil {
 		return nil, err
@@ -148,11 +139,7 @@ func ReadUTF16BEString(reader io.Reader, symbolLen uint16) (string, error) {
 	return string(result), nil
 }
 
-func ReadFrame(reader io.Reader, addr net.Addr) (*Frame, error) {
-	// logrus.
-	// 	WithField("client", addr).
-	// 	Debug("Reading frame")
-
+func ReadFrame(reader io.Reader) (*Frame, error) {
 	var err error
 	frame := &Frame{}
 
@@ -160,10 +147,6 @@ func ReadFrame(reader io.Reader, addr net.Addr) (*Frame, error) {
 	if err != nil {
 		return nil, err
 	}
-	// logrus.
-	// 	WithField("client", addr).
-	// 	WithField("length", frame.Length).
-	// 	Debug("Read frame length")
 
 	frame.Payload = make([]byte, frame.Length)
 	total := 0
@@ -176,26 +159,12 @@ func ReadFrame(reader io.Reader, addr net.Addr) (*Frame, error) {
 			}
 		}
 		total += n
-		// logrus.
-		// 	WithField("client", addr).
-		// 	WithField("total", total).
-		// 	WithField("length", frame.Length).
-		// 	Debug("Reading frame content")
 
 		if n == 0 {
-			// logrus.
-			// 	WithField("client", addr).
-			// 	WithField("frame", frame).
-			// 	Debug("No progress on frame reading")
-
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
-	// logrus.
-	// 	WithField("client", addr).
-	// 	WithField("frame", frame).
-	// 	Debug("Read frame")
 	return frame, nil
 }
 

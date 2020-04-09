@@ -3,6 +3,7 @@ package mcproto
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -18,6 +19,7 @@ var noDeadline time.Time
 
 type Connector interface {
 	StartAcceptingConnections(ctx context.Context, listenAddress string, connRateLimit int) error
+	EncodeDecode()
 }
 
 func NewConnector() Connector {
@@ -34,8 +36,12 @@ type connectorImpl struct {
 }
 
 func (c *connectorImpl) StartAcceptingConnections(ctx context.Context, listenAddress string, connRateLimit int) error {
+	addr, err := net.ResolveTCPAddr("tcp", ":25565")
+	if err != nil {
+		return fmt.Errorf("failed to resolve TCP listen address: %w", err)
+	}
 
-	ln, err := net.Listen("tcp", listenAddress)
+	ln, err := net.ListenTCP("tcp", addr)
 	if err != nil {
 		c.log.Error().Err(err).Msg("unable to start listening")
 		return err
@@ -45,7 +51,7 @@ func (c *connectorImpl) StartAcceptingConnections(ctx context.Context, listenAdd
 	return c.acceptConnections(ctx, ln, connRateLimit)
 }
 
-func (c *connectorImpl) acceptConnections(ctx context.Context, ln net.Listener, connRateLimit int) error {
+func (c *connectorImpl) acceptConnections(ctx context.Context, ln *net.TCPListener, connRateLimit int) error {
 	bucket := ratelimit.NewBucketWithRate(float64(connRateLimit), int64(connRateLimit*2))
 
 	for {
@@ -54,7 +60,7 @@ func (c *connectorImpl) acceptConnections(ctx context.Context, ln net.Listener, 
 			return ln.Close()
 
 		case <-time.After(bucket.Take(1)):
-			conn, err := ln.Accept()
+			conn, err := ln.AcceptTCP()
 			if err != nil {
 				c.log.Error().
 					Err(err).
@@ -67,12 +73,16 @@ func (c *connectorImpl) acceptConnections(ctx context.Context, ln net.Listener, 
 	}
 }
 
-func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.Conn) {
+func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.TCPConn) {
 	//noinspection GoUnhandledErrorResult
 	defer frontendConn.Close()
 
 	clientAddr := frontendConn.RemoteAddr()
 	c.log.Info().Str("client", clientAddr.String()).Msg("got connection")
+
+	if err := frontendConn.SetNoDelay(true); err != nil {
+		c.log.Error().Err(err).Str("client", clientAddr.String()).Msg("failed to set TCPNoDelay")
+	}
 
 	defer c.log.Info().Str("client", clientAddr.String()).Msg("closing connection")
 
@@ -87,7 +97,7 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.C
 		return
 	}
 
-	packet, err := ReadPacket(inspectionReader, clientAddr, c.state)
+	packet, err := ReadPacket(inspectionReader, c.state)
 	if err != nil {
 		c.log.Error().
 			Err(err).
@@ -124,18 +134,21 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.C
 		if handshake.NextState != 2 {
 			break
 		}
-		newRdr := io.TeeReader(frontendConn, inspectionBuffer)
-		packet, err := ReadPacket(newRdr, clientAddr, c.state)
-		if err != nil {
-			c.log.Error().Err(err).Msg("failed to read loginStart packet")
-			break
-		}
-		loginStart, err := ReadLoginStart(packet.Data)
-		if err != nil {
-			c.log.Error().Err(err).Msg("failed to decode login start")
-			break
-		}
-		c.log.Info().Str("playerName", loginStart.Name).Msg("LOGIN START DECODED")
+
+		// TODO: do not sleep, find a way to find out if the client has sent the packet
+		// time.Sleep(time.Millisecond * 1000)
+		//
+		// packet, err := ReadPacket(inspectionReader, clientAddr, 0)
+		// if err != nil {
+		// 	c.log.Error().Err(err).Msg("failed to read loginStart packet")
+		// 	break
+		// }
+		// loginStart, err := ReadLoginStart(packet.Data)
+		// if err != nil {
+		// 	c.log.Error().Err(err).Msg("failed to decode login start")
+		// 	break
+		// }
+		// c.log.Info().Str("playerName", loginStart.Name).Msg("LOGIN START DECODED")
 	case PacketIdLegacyServerListPing:
 		handshake, ok := packet.Data.(*LegacyServerListPing)
 		if !ok {
