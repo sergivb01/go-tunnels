@@ -36,7 +36,7 @@ func ReadPacket(reader io.Reader, addr net.Addr, state State) (*Packet, error) {
 
 	frame, err := ReadFrame(reader, addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading frame: %w", err)
 	}
 
 	packet := &Packet{Length: frame.Length}
@@ -45,7 +45,7 @@ func ReadPacket(reader io.Reader, addr net.Addr, state State) (*Packet, error) {
 
 	packet.PacketID, err = ReadVarInt(remainder)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading remainder: %w", err)
 	}
 
 	packet.Data = remainder.Bytes()

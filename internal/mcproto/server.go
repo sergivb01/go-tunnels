@@ -102,7 +102,10 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.C
 		Int("packetID", packet.PacketID).
 		Msg("received packet")
 
-	if packet.PacketID == PacketIdHandshake {
+	var serverAddress string
+
+	switch packet.PacketID {
+	case PacketIdHandshake:
 		handshake, err := ReadHandshake(packet.Data)
 		if err != nil {
 			c.log.Error().
@@ -115,26 +118,25 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.C
 			Str("client", clientAddr.String()).
 			Interface("handshake", handshake).
 			Msg("received handshake")
-		serverAddress := handshake.ServerAddress
+		serverAddress = handshake.ServerAddress
 
 		// TODO: cleanup this mess
-		if handshake.NextState == 2 {
-			newRdr := io.TeeReader(frontendConn, inspectionBuffer)
-			packet, err := ReadPacket(newRdr, clientAddr, 0)
-			if err != nil {
-				c.log.Error().Err(err).Msg("failed to read loginStart packet")
-			} else {
-				loginStart, err := ReadLoginStart(packet.Data)
-				if err != nil {
-					c.log.Error().Err(err).Msg("failed to decode login start")
-				} else {
-					c.log.Info().Str("playerName", loginStart.Name).Msg("LOGIN START DECODED")
-				}
-			}
+		if handshake.NextState != 2 {
+			break
 		}
-
-		c.findAndConnectBackend(ctx, frontendConn, clientAddr, inspectionBuffer, serverAddress)
-	} else if packet.PacketID == PacketIdLegacyServerListPing {
+		newRdr := io.TeeReader(frontendConn, inspectionBuffer)
+		packet, err := ReadPacket(newRdr, clientAddr, c.state)
+		if err != nil {
+			c.log.Error().Err(err).Msg("failed to read loginStart packet")
+			break
+		}
+		loginStart, err := ReadLoginStart(packet.Data)
+		if err != nil {
+			c.log.Error().Err(err).Msg("failed to decode login start")
+			break
+		}
+		c.log.Info().Str("playerName", loginStart.Name).Msg("LOGIN START DECODED")
+	case PacketIdLegacyServerListPing:
 		handshake, ok := packet.Data.(*LegacyServerListPing)
 		if !ok {
 			c.log.Error().
@@ -144,21 +146,21 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn net.C
 				Msg("unexpected data type for PacketIdLegacyServerListPing")
 			return
 		}
-
 		c.log.Debug().
 			Str("client", clientAddr.String()).
 			Interface("handshake", handshake).
 			Msg("received legacy server list ping")
-		serverAddress := handshake.ServerAddress
-
-		c.findAndConnectBackend(ctx, frontendConn, clientAddr, inspectionBuffer, serverAddress)
-	} else {
+		serverAddress = handshake.ServerAddress
+	default:
 		c.log.Error().
 			Str("client", clientAddr.String()).
 			Interface("packet", packet).
 			Int("packetID", packet.PacketID).
 			Msg("unexpected content")
+		return
 	}
+
+	c.findAndConnectBackend(ctx, frontendConn, clientAddr, inspectionBuffer, serverAddress)
 }
 
 func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn net.Conn,
