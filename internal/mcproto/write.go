@@ -3,6 +3,7 @@ package mcproto
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
 
@@ -14,21 +15,27 @@ func (h *Handshake) EncodePacket(addr string) ([]byte, error) {
 	out := new(bytes.Buffer)
 	out.Write(Uvarint(0))
 
-	// 	ProtocolVersion types.UVarint
-	//	ServerAddress   types.String
-	//	ServerPort      types.UShort
-	//	NextState       types.UVarint
-	WriteUVarInt(out, uint32(h.ProtocolVersion))
-	WriteString(out, addr)
-	WriteUShort(out, 25565)
-	WriteUVarInt(out, 2)
+	if _, err := WriteUVarInt(out, uint32(h.ProtocolVersion)); err != nil {
+		return nil, fmt.Errorf("error writing protover: %w", err)
+	}
+
+	if err := WriteString(out, addr); err != nil {
+		return nil, fmt.Errorf("error writing srv address: %w", err)
+	}
+
+	if _, err := WriteUShort(out, h.ServerPort); err != nil {
+		return nil, fmt.Errorf("error writing server port: %w", err)
+	}
+
+	if _, err := WriteUVarInt(out, uint32(h.NextState)); err != nil {
+		return nil, fmt.Errorf("error writing next state: %w", err)
+	}
 
 	return append(
 		Uvarint(uint32(out.Len())),
 		out.Bytes()...,
 	), nil
 }
-
 
 func (h *LegacyServerListPing) EncodePacket(addr string) ([]byte, error) {
 	out := new(bytes.Buffer)

@@ -187,7 +187,7 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 		return
 	}
 
-	if h.ProtocolVersion != -1 && h.NextState == 2{
+	if h.ProtocolVersion != -1 && h.NextState == 2 {
 		b, err := h.EncodePacket("na.lunar.gg")
 		if err != nil {
 			c.log.Error().
@@ -195,14 +195,12 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 				Str("client", clientAddr.String()).
 				Str("backendHostPort", backendHostPort).
 				Msg("failed to enconde custom handshake")
+			return
 		}
+
 		amount, err := backendConn.Write(b)
 		if err != nil {
-			c.log.Error().
-				Err(err).
-				Str("client", clientAddr.String()).
-				Str("backendHostPort", backendHostPort).
-				Msg("1234failed to write handshake to backend")
+			c.log.Error().Err(err).Str("client", clientAddr.String()).Str("backendHostPort", backendHostPort).Msg("1234failed to write handshake to backend")
 			return
 		}
 		c.log.Debug().
@@ -238,4 +236,3 @@ func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn 
 
 	c.pumpConnections(ctx, frontendConn, backendConn)
 }
-
