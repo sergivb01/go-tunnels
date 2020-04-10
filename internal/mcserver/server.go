@@ -102,20 +102,18 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn net.Conn) 
 
 		switch p := rawPacket.(type) {
 		case packet.StatusRequest:
-			if _, err := c.Write(getRandomResponse()); err != nil {
+			if _, err := c.Write(getRandomResponse(47, "Invalid!")); err != nil {
 				cLog.Error().Err(err).Msg("error trying to write StatusResponse")
-				return
 			}
-			break
 		case packet.Handshake:
 			c.SetState(protocol.State(p.NextState))
 			cLog.Info().Int("state", int(p.NextState)).Msg("STATE IS BLABLABLA")
 
 			if p.NextState == 1 {
-				if _, err := c.Write(getRandomResponse()); err != nil {
+				if _, err := c.Write(getRandomResponse(int(p.ProtocolVersion), string(p.ServerAddress))); err != nil {
 					cLog.Error().Err(err).Msg("error trying to write StatusResponse")
 				}
-				return
+				continue
 			}
 
 			host, port, err = ExtractHostPort(string(p.ServerAddress))
@@ -125,12 +123,11 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn net.Conn) 
 			}
 			p.ServerAddress = types.String(host)
 			lastPk = p
-		// case packet.StatusPing:
-		// 	pong := packet.StatusPong{Payload: p.Payload}
-		// 	if _, err := c.Write(pong); err != nil {
-		// 		cLog.Error().Err(err).Msg("error trying to write StatusPong")
-		// 		return
-		// 	}
+		case packet.StatusPing:
+			pong := packet.StatusPong{Payload: p.Payload}
+			if _, err := c.Write(pong); err != nil {
+				cLog.Error().Err(err).Msg("error trying to write StatusPong")
+			}
 		default:
 			cLog.Error().Msg("what the fuck...?")
 		}
@@ -161,6 +158,8 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.C
 	}
 	cLog.Debug().Int("amout", amount).Msg("relayed handshake to backend")
 
+	time.Sleep(time.Millisecond * 300)
+
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		cLog.Error().Err(err).Msg("failed to clear read deadline")
 		return
@@ -169,17 +168,17 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.C
 	s.pumpConnections(ctx, frontendConn, backendConn)
 }
 
-func getRandomResponse() packet.StatusResponse {
+func getRandomResponse(proto int, address string) packet.StatusResponse {
 	resp := packet.StatusResponse{}
 	resp.Status.Version.Name = "1.8.8"
-	resp.Status.Version.Protocol = 47
+	resp.Status.Version.Protocol = proto
 	resp.Status.Players.Max = rand.Intn(100)
 	resp.Status.Players.Online = rand.Intn(101)
 	resp.Status.Description = chat.TextComponent{
-		Text: "Spoofed!",
+		Text: "Spoofed - " + address,
 		Component: chat.Component{
 			Bold:  true,
-			Color: chat.ColorRed,
+			Color: chat.ColorDarkRed,
 		},
 	}
 	return resp
