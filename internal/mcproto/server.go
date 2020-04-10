@@ -77,80 +77,57 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 	defer frontendConn.Close()
 
 	clientAddr := frontendConn.RemoteAddr()
-	c.log.Info().Str("client", clientAddr.String()).Msg("got connection")
+	cLog := c.log.With().Str("client", clientAddr.String()).Logger()
+	cLog.Info().Msg("got connection")
+	defer cLog.Info().Msg("closing connection")
 
 	if err := frontendConn.SetNoDelay(true); err != nil {
-		c.log.Error().Err(err).Str("client", clientAddr.String()).Msg("failed to set TCPNoDelay")
+		cLog.Error().Err(err).Msg("failed to set TCPNoDelay")
 	}
-
-	defer c.log.Info().Str("client", clientAddr.String()).Msg("closing connection")
 
 	inspectionBuffer := new(bytes.Buffer)
 	inspectionReader := io.TeeReader(frontendConn, inspectionBuffer)
 
 	if err := frontendConn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
-		c.log.Error().
-			Err(err).
-			Str("client", clientAddr.String()).
-			Msg("failed to set read deadline")
+		cLog.Error().Err(err).Msg("failed to set read deadline")
 		return
 	}
 
 	packet, err := ReadPacket(inspectionReader, c.state)
 	if err != nil {
-		c.log.Error().
-			Err(err).
-			Str("client", clientAddr.String()).
-			Msg("failed to read packet")
+		cLog.Error().Err(err).Msg("failed to read packet")
 		return
 	}
 
-	c.log.Debug().
-		Str("client", clientAddr.String()).
-		Int("length", packet.Length).
-		Int("packetID", packet.PacketID).
-		Msg("received packet")
+	cLog.Debug().Int("length", packet.Length).Int("packetID", packet.PacketID).Msg("received packet")
 
-	var serverAddress string
-	customHandshake := &Handshake{ProtocolVersion: -1}
+	var (
+		serverAddress string
+	)
+	customHandshake := &Handshake{
+		ProtocolVersion: -1,
+	}
 
 	switch packet.PacketID {
 	case PacketIdHandshake:
 		handshake, err := ReadHandshake(packet.Data)
 		if err != nil {
-			c.log.Error().
-				Err(err).
-				Str("client", clientAddr.String()).
-				Msg("failed to read handshake")
+			cLog.Error().Err(err).Msg("failed to read handshake")
 			return
 		}
-		c.log.Debug().
-			Str("client", clientAddr.String()).
-			Interface("handshake", handshake).
-			Msg("received handshake")
+		cLog.Debug().Interface("handshake", handshake).Msg("received handshake")
 		serverAddress = handshake.ServerAddress
 		customHandshake = handshake
 	case PacketIdLegacyServerListPing:
 		handshake, ok := packet.Data.(*LegacyServerListPing)
 		if !ok {
-			c.log.Error().
-				Err(err).
-				Str("client", clientAddr.String()).
-				Interface("packet", packet).
-				Msg("unexpected data type for PacketIdLegacyServerListPing")
+			cLog.Error().Err(err).Interface("packet", packet).Msg("unexpected data type for PacketIdLegacyServerListPing")
 			return
 		}
-		c.log.Debug().
-			Str("client", clientAddr.String()).
-			Interface("handshake", handshake).
-			Msg("received legacy server list ping")
+		cLog.Debug().Interface("handshake", handshake).Msg("received legacy server list ping")
 		serverAddress = handshake.ServerAddress
 	default:
-		c.log.Error().
-			Str("client", clientAddr.String()).
-			Interface("packet", packet).
-			Int("packetID", packet.PacketID).
-			Msg("unexpected content")
+		cLog.Error().Interface("packet", packet).Int("packetID", packet.PacketID).Msg("unexpected content")
 		return
 	}
 
@@ -159,79 +136,48 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 
 func (c *connectorImpl) findAndConnectBackend(ctx context.Context, frontendConn net.Conn,
 	clientAddr net.Addr, preReadContent io.Reader, serverAddress string, h *Handshake) {
-
 	// backendHostPort, resolvedHost := Routes.FindBackendForServerAddress(serverAddress)
 	host, port, err := ExtractHostPort(serverAddress)
 	if err != nil {
-		c.log.Error().
-			Err(err).
-			Str("client", clientAddr.String()).
-			Str("server", serverAddress).
+		c.log.Error().Err(err).Str("client", clientAddr.String()).Str("server", serverAddress).
 			Msg("could not find backend")
 		return
 	}
 	backendHostPort := fmt.Sprintf("%s:%d", host, port)
+	cLog := c.log.With().Str("client", clientAddr.String()).Str("backendHostPort", backendHostPort).Str("server", serverAddress).Logger()
 
-	c.log.Info().
-		Str("client", clientAddr.String()).
-		Str("server", serverAddress).
-		Str("backendHostPort", backendHostPort).
-		Msg("connecting to backend")
+	cLog.Info().Msg("connecting to backend")
 
 	backendConn, err := net.Dial("tcp", backendHostPort)
 	if err != nil {
-		c.log.Error().Err(err).
-			Str("client", clientAddr.String()).
-			Str("serverAddress", serverAddress).
-			Str("backendHostPort", backendHostPort).
-			Msg("unable to connect to backend")
+		cLog.Error().Err(err).Msg("unable to connect to backend")
 		return
 	}
 
 	if h.ProtocolVersion != -1 && h.NextState == 2 {
 		b, err := h.EncodePacket(host)
 		if err != nil {
-			c.log.Error().
-				Err(err).
-				Str("client", clientAddr.String()).
-				Str("backendHostPort", backendHostPort).
-				Msg("failed to enconde custom handshake")
+			cLog.Error().Err(err).Msg("failed to enconde custom handshake")
 			return
 		}
 
 		amount, err := backendConn.Write(b)
 		if err != nil {
-			c.log.Error().Err(err).Str("client", clientAddr.String()).Str("backendHostPort", backendHostPort).Msg("1234failed to write handshake to backend")
+			cLog.Error().Err(err).Msg("1234failed to write handshake to backend")
 			return
 		}
-		c.log.Debug().
-			Str("client", clientAddr.String()).
-			Str("backendHostPort", backendHostPort).
-			Int("amout", amount).
-			Msg("1234relayed handshake to backend")
+		cLog.Debug().Int("amout", amount).Msg("1234relayed handshake to backend")
 	} else {
 		amount, err := io.Copy(backendConn, preReadContent)
 		if err != nil {
-			c.log.Error().
-				Err(err).
-				Str("client", clientAddr.String()).
-				Str("backendHostPort", backendHostPort).
-				Msg("failed to write handshake to backend")
+			cLog.Error().Err(err).Msg("failed to write handshake to backend")
 			return
 		}
-		c.log.Debug().
-			Str("client", clientAddr.String()).
-			Str("backendHostPort", backendHostPort).
-			Int64("amout", amount).
-			Msg("relayed handshake to backend")
+		cLog.Debug().Int64("amout", amount).Msg("relayed handshake to backend")
 	}
 
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
-		c.log.Error().
-			Err(err).
-			Str("client", clientAddr.String()).
-			Str("backendHostPort", backendHostPort).
-			Msg("failed to clear read deadline")
+		cLog.Error().Err(err).Msg("failed to clear read deadline")
 		return
 	}
 

@@ -49,9 +49,8 @@ const (
 	PacketIdLegacyServerListPing = 0xFE
 )
 
-type BasicPacket interface {
-	ServerAddress() string
-	SetServerAddress(s string)
+type EncodablePacket interface {
+	EncodePacket(s string) ([]byte, error)
 }
 
 type Handshake struct {
