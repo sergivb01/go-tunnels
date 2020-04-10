@@ -85,6 +85,14 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 		cLog.Error().Err(err).Msg("failed to set TCPNoDelay")
 	}
 
+	if err := frontendConn.SetKeepAlive(true); err != nil {
+		cLog.Error().Err(err).Msg("failed to set KeepAlive")
+	}
+
+	if err := frontendConn.SetKeepAlivePeriod(time.Second); err != nil {
+		cLog.Error().Err(err).Msg("failed to set KeepAliveTime")
+	}
+
 	inspectionBuffer := new(bytes.Buffer)
 	inspectionReader := io.TeeReader(frontendConn, inspectionBuffer)
 
