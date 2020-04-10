@@ -154,6 +154,9 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.C
 		cLog.Error().Err(err).Msg("unable to connect to backend")
 		return
 	}
+	if err := backendConn.SetKeepAlive(false); err != nil {
+		cLog.Error().Err(err).Msg("error disabling KeepAlive to remote")
+	}
 
 	if err := backendConn.SetNoDelay(true); err != nil {
 		cLog.Error().Err(err).Msg("error setting TCPNoDelay to remote")
