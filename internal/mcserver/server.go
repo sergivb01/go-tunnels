@@ -4,13 +4,17 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"time"
 
 	"github.com/juju/ratelimit"
 	"github.com/rs/zerolog"
 
-	"github.com/sergivb01/mctunnel/internal/proto"
+	"github.com/sergivb01/mctunnel/internal/protocol"
+	"github.com/sergivb01/mctunnel/internal/protocol/chat"
+	"github.com/sergivb01/mctunnel/internal/protocol/packet"
+	"github.com/sergivb01/mctunnel/internal/protocol/types"
 )
 
 const handshakeTimeout = 5 * time.Second
@@ -76,26 +80,70 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn net.Conn) 
 		return
 	}
 
-	player := proto.NewPlayer(frontendConn)
-	player.ReadPacket()
+	c := protocol.NewConnection(frontendConn)
 
-	s.findAndConnectBackend(ctx, frontendConn, clientAddr, buf, serverAddress, customHandshake)
+	host := "abc"
+	var port int
+
+	var lastPk packet.Handshake
+
+	for host == "abc" {
+		pk, err := c.Next()
+		if err == io.EOF || pk == nil {
+			return
+		}
+
+		rawPacket, err := c.D.Decode(pk)
+		if err == protocol.ErrUknownPacket {
+			continue
+		}
+
+		cLog.Info().Int("packetID", pk.ID).Msg("received packet!")
+
+		switch p := rawPacket.(type) {
+		case packet.StatusRequest:
+			if _, err := c.Write(getRandomResponse()); err != nil {
+				cLog.Error().Err(err).Msg("error trying to write StatusResponse")
+				return
+			}
+			break
+		case packet.Handshake:
+			c.SetState(protocol.State(p.NextState))
+			cLog.Info().Int("state", int(p.NextState)).Msg("STATE IS BLABLABLA")
+
+			if p.NextState == 1 {
+				if _, err := c.Write(getRandomResponse()); err != nil {
+					cLog.Error().Err(err).Msg("error trying to write StatusResponse")
+				}
+				return
+			}
+
+			host, port, err = ExtractHostPort(string(p.ServerAddress))
+			if err != nil {
+				cLog.Error().Err(err).Str("server", string(p.ServerAddress)).Msg("could not find backend")
+				return
+			}
+			p.ServerAddress = types.String(host)
+			lastPk = p
+		// case packet.StatusPing:
+		// 	pong := packet.StatusPong{Payload: p.Payload}
+		// 	if _, err := c.Write(pong); err != nil {
+		// 		cLog.Error().Err(err).Msg("error trying to write StatusPong")
+		// 		return
+		// 	}
+		default:
+			cLog.Error().Msg("what the fuck...?")
+		}
+	}
+
+	s.findAndConnectBackend(ctx, frontendConn, lastPk, host, port)
 }
 
-func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.Conn,
-	clientAddr net.Addr, preReadContent io.Reader, serverAddress string) {
+func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.Conn, lastPk packet.Handshake, host string, port int) {
 	// backendHostPort, resolvedHost := Routes.FindBackendForServerAddress(serverAddress)
 	// host, port, err := ExtractHostPort(serverAddress)
-	host, port := "mc.hypixel.net", 25565
-	var err error
-	if err != nil {
-		s.log.Error().Err(err).Str("client", clientAddr.String()).Str("server", serverAddress).
-			Msg("could not find backend")
-		return
-	}
 	backendHostPort := fmt.Sprintf("%s:%d", host, port)
-	cLog := s.log.With().Str("client", clientAddr.String()).Str("backendHostPort", backendHostPort).Str("server", serverAddress).Logger()
-
+	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("backendHostPort", backendHostPort).Logger()
 	cLog.Info().Msg("connecting to backend")
 
 	backendConn, err := net.Dial("tcp", backendHostPort)
@@ -104,12 +152,14 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.C
 		return
 	}
 
-	amount, err := io.Copy(backendConn, preReadContent)
+	time.Sleep(time.Millisecond * 300)
+
+	amount, err := protocol.NewConnection(backendConn).Write(lastPk)
 	if err != nil {
 		cLog.Error().Err(err).Msg("failed to write handshake to backend")
 		return
 	}
-	cLog.Debug().Int64("amout", amount).Msg("relayed handshake to backend")
+	cLog.Debug().Int("amout", amount).Msg("relayed handshake to backend")
 
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		cLog.Error().Err(err).Msg("failed to clear read deadline")
@@ -117,4 +167,20 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn net.C
 	}
 
 	s.pumpConnections(ctx, frontendConn, backendConn)
+}
+
+func getRandomResponse() packet.StatusResponse {
+	resp := packet.StatusResponse{}
+	resp.Status.Version.Name = "1.8.8"
+	resp.Status.Version.Protocol = 47
+	resp.Status.Players.Max = rand.Intn(100)
+	resp.Status.Players.Online = rand.Intn(101)
+	resp.Status.Description = chat.TextComponent{
+		Text: "Spoofed!",
+		Component: chat.Component{
+			Bold:  true,
+			Color: chat.ColorRed,
+		},
+	}
+	return resp
 }
