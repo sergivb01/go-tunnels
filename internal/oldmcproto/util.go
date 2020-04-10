@@ -1,4 +1,4 @@
-package mcproto
+package oldmcproto
 
 import "encoding/binary"
 

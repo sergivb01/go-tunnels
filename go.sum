@@ -1,9 +1,17 @@
+github.com/TyphoonMC/TyphoonCore v0.0.3-0.20200323182818-1848b9a95a58 h1:Bnk4hXTKdPEzLOA+yPOPvwAkVx/K/Cg57NQOl//sgaA=
+github.com/TyphoonMC/TyphoonCore v0.0.3-0.20200323182818-1848b9a95a58/go.mod h1:xWjjWVkxdLPVoWfXrFDKQdYcNEf161OfP2jV+i2tx6U=
+github.com/TyphoonMC/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5 h1:PmkiMBzbNG1XlV/3Z8RKP/wjmbn3qZLKdCZVHvmimIU=
+github.com/TyphoonMC/go.uuid v1.2.1-0.20180103174451-36e9d2ebbde5/go.mod h1:EA3G1ph1GIr+QuXTL9qq8IJihUI+kKd7NR5hyxP3bZM=
 github.com/coreos/go-systemd v0.0.0-20190321100706-95778dfbb74e/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
 github.com/juju/ratelimit v1.0.1 h1:+7AIFJVQ0EQgq/K9+0Krm7m530Du7tIz0METWzN0RgY=
 github.com/juju/ratelimit v1.0.1/go.mod h1:qapgC/Gy+xNh9UxzV13HGGl/6UXNN+ct+vwSgWNm/qk=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0 h1:45sCR5RtlFHMR4UwH9sdQ5TC8v0qDQCHnXt+kaKSTVE=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
+github.com/minero/minero v0.0.0-20150110114733-93368d43a80e h1:dWakVSy4xPxxOf31JgvUIFTUT/Y12vpgMMPGK20KzhY=
+github.com/minero/minero v0.0.0-20150110114733-93368d43a80e/go.mod h1:PKY6yVjlpEE5+NR3gQQPJKIPgCaCgFp0ZkVXJDY+yAs=
+github.com/minero/minero-go v0.0.0-20150110114733-93368d43a80e h1:EpxmznArNGEjPgX7YCugXMROwDPiqbhYmJJ4/BlnMFM=
+github.com/minero/minero-go v0.0.0-20150110114733-93368d43a80e/go.mod h1:HUaBxEDaPZ+fAuxtg846LNNCqbjySP4Vj8tQFTtV3D8=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e h1:fD57ERR4JtEqsWbfPhv4DMiApHyliiK5xCTNVSPiaAs=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=

@@ -2,19 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/sergivb01/mctunnel/internal/mcproto"
+	"github.com/sergivb01/mctunnel/internal/mcserver"
 )
 
 func main() {
-	fmt.Printf("CUSTOM_ENDING" + mcproto.CustomEnding)
-
-	fmt.Println(mcproto.ExtractHostPort("mc.hypixel.net." + mcproto.CustomEnding))
-	conn := mcproto.NewConnector()
-	conn.EncodeDecode()
-
-	if err := conn.StartAcceptingConnections(context.TODO(), ":25565", 50); err != nil {
+	conn := mcserver.NewConnector()
+	if err := conn.StartAcceptingConnections(context.Background(), ":25565", 500000); err != nil {
 		panic(err)
 	}
 }

@@ -1,4 +1,4 @@
-package mcproto
+package oldmcproto
 
 import (
 	"bytes"
@@ -15,16 +15,16 @@ func (c *connectorImpl) EncodeDecode() {
 
 	b, err := h.EncodePacket("lunar.gg")
 	if err != nil {
-		c.log.Error().Err(err).Msg("error encoding custom packet")
+		c.log.Error().Err(err).Msg("error encoding custom proto")
 		return
 	}
 
 	packet, err := ReadPacket(bytes.NewReader(b), 0)
 	if err != nil {
-		c.log.Error().Err(err).Msg("failed to read packet")
+		c.log.Error().Err(err).Msg("failed to read proto")
 		return
 	}
-	c.log.Debug().Int("packetID", packet.PacketID).Msg("read packet")
+	c.log.Debug().Int("packetID", packet.PacketID).Msg("read proto")
 
 	hand, err := ReadHandshake(packet.Data)
 	if err != nil {

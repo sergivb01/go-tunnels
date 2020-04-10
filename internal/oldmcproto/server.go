@@ -1,4 +1,4 @@
-package mcproto
+package oldmcproto
 
 import (
 	"bytes"
@@ -103,11 +103,11 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 
 	packet, err := ReadPacket(inspectionReader, c.state)
 	if err != nil {
-		cLog.Error().Err(err).Msg("failed to read packet")
+		cLog.Error().Err(err).Msg("failed to read proto")
 		return
 	}
 
-	cLog.Debug().Int("length", packet.Length).Int("packetID", packet.PacketID).Msg("received packet")
+	cLog.Debug().Int("length", packet.Length).Int("packetID", packet.PacketID).Msg("received proto")
 
 	var (
 		serverAddress string
@@ -129,13 +129,13 @@ func (c *connectorImpl) HandleConnection(ctx context.Context, frontendConn *net.
 	case PacketIdLegacyServerListPing:
 		handshake, ok := packet.Data.(*LegacyServerListPing)
 		if !ok {
-			cLog.Error().Err(err).Interface("packet", packet).Msg("unexpected data type for PacketIdLegacyServerListPing")
+			cLog.Error().Err(err).Interface("proto", packet).Msg("unexpected data type for PacketIdLegacyServerListPing")
 			return
 		}
 		cLog.Debug().Interface("handshake", handshake).Msg("received legacy server list ping")
 		serverAddress = handshake.ServerAddress
 	default:
-		cLog.Error().Interface("packet", packet).Int("packetID", packet.PacketID).Msg("unexpected content")
+		cLog.Error().Interface("proto", packet).Int("packetID", packet.PacketID).Msg("unexpected content")
 		return
 	}
 

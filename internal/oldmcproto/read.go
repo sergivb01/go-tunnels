@@ -1,4 +1,4 @@
-package mcproto
+package oldmcproto
 
 import (
 	"bufio"
@@ -17,7 +17,7 @@ import (
 func ReadPacket(reader io.Reader, state State) (*Packet, error) {
 	// logrus.
 	// 	WithField("client", addr).
-	// 	Debug("Reading packet")
+	// 	Debug("Reading proto")
 
 	if state == StateHandshaking {
 		bufReader := bufio.NewReader(reader)
@@ -58,7 +58,7 @@ func ReadLegacyServerListPing(reader *bufio.Reader) (*Packet, error) {
 		return nil, err
 	}
 	if packetId != PacketIdLegacyServerListPing {
-		return nil, fmt.Errorf("expected legacy server listing ping packet ID, got %x", packetId)
+		return nil, fmt.Errorf("expected legacy server listing ping proto ID, got %x", packetId)
 	}
 
 	payload, err := reader.ReadByte()

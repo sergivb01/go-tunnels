@@ -1,4 +1,4 @@
-package mcproto
+package oldmcproto
 
 import (
 	"bytes"
@@ -37,7 +37,7 @@ func (h *Handshake) EncodePacket(addr string) ([]byte, error) {
 	), nil
 }
 
-// TODO: proper encode packet (this is really bad lol)
+// TODO: proper encode proto (this is really bad lol)
 func (h *LegacyServerListPing) BadEncoding(addr string) ([]byte, error) {
 	out := new(bytes.Buffer)
 	out.Write(Uvarint(PacketIdLegacyServerListPing))
