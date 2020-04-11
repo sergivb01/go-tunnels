@@ -61,19 +61,17 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, c
 					Str("remoteAddr", conn.RemoteAddr().String()).
 					Msg("error accepting connection")
 			} else {
-				go s.handleConnection(ctx, conn, time.Now())
+				go s.handleConnection(ctx, conn)
 			}
 		}
 	}
 }
 
-func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, start time.Time) {
+func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn) {
 	// //noinspection GoUnhandledErrorResult
 	defer frontendConn.Close()
 
 	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
-	cLog.Info().Msg("got connection")
-	defer cLog.Info().Msg("closing connection")
 
 	if err := frontendConn.SetNoDelay(true); err != nil {
 		cLog.Error().Err(err).Msg("error setting TCPNoDelay to frontendConn")
@@ -103,15 +101,17 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
+	// TODO: if h.Status == 1, return custom StatusResponse
+
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		cLog.Error().Err(err).Msg("failed to clear read deadline")
 		return
 	}
 
-	s.findAndConnectBackend(ctx, frontendConn, h, start)
+	s.findAndConnectBackend(ctx, frontendConn, h)
 }
 
-func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *proto.Handshake, start time.Time) {
+func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *proto.Handshake) {
 	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.Address).Uint16("handshakePort", h.Port).Logger()
 	cLog.Info().Msg("connecting to backend")
 
@@ -142,6 +142,5 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		return
 	}
 
-	cLog.Info().Dur("took", time.Since(start)).Msg("TIME TOOK FROM ACCEPT TO PUMP")
 	s.pumpConnections(ctx, frontendConn, remote)
 }
