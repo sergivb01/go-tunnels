@@ -13,7 +13,7 @@ var (
 	// errNoSrvFound = errors.New("no srv record found")
 )
 
-func ExtractHostPort(serverAddress string) (string, int) {
+func ResolveServerAddress(serverAddress string) (string, int) {
 	end := len(serverAddress) - endLen
 	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:end])
 	if err != nil || len(addrs) == 0 {

@@ -115,10 +115,8 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.Address).Uint16("handshakePort", h.Port).Logger()
 	cLog.Info().Msg("connecting to backend")
 
-	t := time.Now()
-	host, port := ExtractHostPort(h.Address)
+	host, port := ResolveServerAddress(h.Address)
 	cLog.Info().Str("host", host).Int("port", port).Msg("found backend for connection")
-	cLog.Debug().Dur("took", time.Since(t)).Msg("SEARCHING FOR BACKEND")
 
 	addr, err := net.ResolveTCPAddr("tcp", host+":"+strconv.Itoa(port))
 	if err != nil {
