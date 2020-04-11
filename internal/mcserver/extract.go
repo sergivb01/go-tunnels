@@ -4,22 +4,20 @@ import (
 	"errors"
 	"net"
 	"os"
-	"strings"
 )
 
 var (
-	CustomEnding  = os.Getenv("CUSTOM_ENDING")
+	CustomEnding  = "." + os.Getenv("CUSTOM_ENDING")
+	endLen        = len(CustomEnding)
 	errNoSrvFound = errors.New("no srv record found")
 )
 
-func ExtractHostPort(serverAddress string) (string, int, error) {
-	h := strings.TrimSuffix(serverAddress, "."+CustomEnding)
-	_, addrs, err := net.LookupSRV("minecraft", "tcp", h)
+const defaultMCPort = 25565
+
+func ExtractHostPort(serverAddress string) (string, int) {
+	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:len(serverAddress)-endLen])
 	if err != nil {
-		if strings.Contains(err.Error(), "dnsquery: DNS name does not exist.") || strings.Contains(err.Error(), "no such host") {
-			return h, 25565, nil
-		}
-		return h, 25565, errNoSrvFound
+		return serverAddress[:len(serverAddress)-endLen], defaultMCPort
 	}
-	return addrs[0].Target[:len(addrs[0].Target)-1], int(addrs[0].Port), nil
+	return addrs[0].Target[:len(addrs[0].Target)-1], int(addrs[0].Port)
 }
