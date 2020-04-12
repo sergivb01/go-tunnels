@@ -7,17 +7,12 @@ import (
 
 const defaultMCPort = 25565
 
-var (
-	CustomEnding = "." + os.Getenv("CUSTOM_ENDING")
-	endLen       = len(CustomEnding) - 1
-	// errNoSrvFound = errors.New("no srv record found")
-)
+var endLen = len(os.Getenv("CUSTOM_ENDING"))
 
 func ResolveServerAddress(serverAddress string) (string, int) {
-	end := len(serverAddress) - endLen
-	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:end])
+	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:len(serverAddress) - endLen])
 	if err != nil || len(addrs) == 0 {
-		return serverAddress[:end], defaultMCPort
+		return serverAddress[:len(serverAddress) - endLen], defaultMCPort
 	}
 	return addrs[0].Target, int(addrs[0].Port)
 }

@@ -11,18 +11,18 @@ type BytesReader interface {
 	io.ByteReader
 }
 
-func PacketReader(reader BytesReader) (packetID uint64, packetReader BytesReader, err error) {
+func PacketReader(reader BytesReader) (uint64, BytesReader, error) {
 	length, err := readVarInt(reader)
 	if err != nil {
-		return
+		return 0, nil, err
 	}
 	packet, err := ReadBytes(reader, length)
 	if err != nil {
-		return
+		return 0, nil, err
 	}
-	packetReader = bytes.NewReader(packet)
-	packetID, err = readVarInt(packetReader)
-	return
+	packetReader := bytes.NewReader(packet)
+	packetID, err := readVarInt(packetReader)
+	return packetID, packetReader, err
 }
 
 func (stream *MCConn) ReadByte() (byte, error) {
@@ -30,37 +30,33 @@ func (stream *MCConn) ReadByte() (byte, error) {
 	return b[0], err
 }
 
-func ReadBytes(reader io.Reader, n uint64) (bytes []byte, err error) {
-	bytes = make([]byte, n)
-	_, err = reader.Read(bytes)
-	return
+func ReadBytes(reader io.Reader, n uint64) ([]byte, error) {
+	b := make([]byte, n)
+	_, err := reader.Read(b)
+	return b, err
 }
 
-func readVarInt(reader io.ByteReader) (num uint64, err error) {
-	varint, err := binary.ReadUvarint(reader)
-	if err != nil {
-		return
-	}
-	return varint, err
+func readVarInt(reader io.ByteReader) (uint64, error) {
+	return binary.ReadUvarint(reader)
 }
 
-func readShort(reader io.Reader) (num uint16, err error) {
+func readShort(reader io.Reader) (uint16, error) {
 	// 2 bytes required for short
 	buffer, err := ReadBytes(reader, 2)
 	if err != nil {
-		return
+		return 0, err
 	}
 	return binary.BigEndian.Uint16(buffer), err
 }
 
-func readString(reader BytesReader) (result string, err error) {
+func readString(reader BytesReader) (string, error) {
 	length, err := readVarInt(reader)
 	if err != nil {
-		return
+		return "", err
 	}
 	buffer, err := ReadBytes(reader, length)
 	if err != nil {
-		return
+		return "", err
 	}
 	return string(buffer), err
 }

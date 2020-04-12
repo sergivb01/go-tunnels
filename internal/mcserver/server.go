@@ -13,9 +13,13 @@ import (
 	"github.com/sergivb01/mctunnel/internal/proto"
 )
 
-const handshakeTimeout = 3 * time.Second
+const handshakeTimeout = 1 * time.Second
 
 var noDeadline time.Time
+
+type MCServer struct {
+	log zerolog.Logger
+}
 
 func NewConnector() *MCServer {
 	return &MCServer{
@@ -25,11 +29,7 @@ func NewConnector() *MCServer {
 	}
 }
 
-type MCServer struct {
-	log zerolog.Logger
-}
-
-func (s *MCServer) StartAcceptingConnections(ctx context.Context, listenAddress string, connRateLimit int) error {
+func (s *MCServer) Start(ctx context.Context, listenAddress string, connRateLimit int) error {
 	addr, err := net.ResolveTCPAddr("tcp", listenAddress)
 	if err != nil {
 		return fmt.Errorf("error resolving local adderss: %w", err)

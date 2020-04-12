@@ -16,10 +16,9 @@ type MCConn struct {
 	*net.TCPConn
 }
 
-func packetWriter(packetID uint64) (writer *bytes.Buffer, err error) {
-	writer = new(bytes.Buffer)
-	err = writeVarInt(writer, packetID)
-	return
+func packetWriter(packetID uint64) (*bytes.Buffer, error) {
+	writer := new(bytes.Buffer)
+	return writer, writeVarInt(writer, packetID)
 }
 
 func encodeVarInt(num uint64) []byte {
@@ -27,9 +26,9 @@ func encodeVarInt(num uint64) []byte {
 	return buffer[:binary.PutUvarint(buffer, num)]
 }
 
-func writeVarInt(writer io.Writer, num uint64) (err error) {
-	_, err = writer.Write(encodeVarInt(num))
-	return
+func writeVarInt(writer io.Writer, num uint64) error {
+	_, err := writer.Write(encodeVarInt(num))
+	return err
 }
 
 func writeShort(writer io.Writer, num uint16) error {
@@ -43,11 +42,11 @@ func encodeShort(num uint16) []byte {
 	return buffer
 }
 
-func writeString(writer io.Writer, s string) (err error) {
-	err = writeVarInt(writer, uint64(len(s)))
+func writeString(writer io.Writer, s string) error {
+	err := writeVarInt(writer, uint64(len(s)))
 	if err != nil {
-		return
+		return err
 	}
 	_, err = io.WriteString(writer, s)
-	return
+	return err
 }
