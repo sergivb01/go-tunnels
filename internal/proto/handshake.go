@@ -44,7 +44,7 @@ func (h *Handshake) Write(remote io.Writer, address string) error {
 	return nil
 }
 
-func (h *Handshake) WriteCopy(remote io.Writer, address string) error {
+func (h *Handshake) ReverseWrite(remote io.Writer, address string) error {
 	w, err := packetWriter(0x00)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func (h *Handshake) WriteCopy(remote io.Writer, address string) error {
 		return err
 	}
 
-	if _, err := io.Copy(remote, w); err != nil {
+	if _, err := w.WriteTo(remote); err != nil {
 		return err
 	}
 
