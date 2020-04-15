@@ -20,10 +20,8 @@ func (s *MCServer) pumpConnections(ctx context.Context, frontendConn, backendCon
 	select {
 	case err := <-errors:
 		if err != io.EOF {
-			s.log.Error().
-				Err(err).
-				Str("client", clientAddr).
-				Str("backendConn", backendConn.RemoteAddr().String()).
+			s.log.Error().Err(err).Str("client", clientAddr).
+				Str("backend", backendConn.RemoteAddr().String()).
 				Msg("error on connection relay")
 		}
 	case <-ctx.Done():

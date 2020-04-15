@@ -11,6 +11,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/sergivb01/mctunnel/internal/proto"
+	"github.com/sergivb01/mctunnel/internal/proto/packet"
 )
 
 const handshakeTimeout = 1 * time.Second
@@ -18,14 +19,16 @@ const handshakeTimeout = 1 * time.Second
 var noDeadline time.Time
 
 type MCServer struct {
-	log zerolog.Logger
+	log         zerolog.Logger
+	packetCoder proto.PacketCoder
 }
 
 func NewConnector() *MCServer {
 	return &MCServer{
 		log: zerolog.New(zerolog.NewConsoleWriter()).
 			With().Timestamp().
-			Logger().Level(zerolog.DebugLevel),
+			Logger().Level(zerolog.InfoLevel),
+		packetCoder: proto.NewPacketDecoder(),
 	}
 }
 
@@ -82,63 +85,63 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	mcConn := &proto.MCConn{TCPConn: frontendConn}
-
-	packetID, reader, err := proto.PacketReader(mcConn)
+	t := time.Now()
+	packetID, err := s.packetCoder.DecodePacket(frontendConn)
 	if err != nil {
-		cLog.Error().Err(err).Msg("error creating packet reader")
+		cLog.Error().Err(err).Msg("error reading packetID")
 		return
 	}
 
-	if packetID != 0x00 {
-		cLog.Info().Uint64("packetID", packetID).Msg("received first unknown packet")
+	if packetID != packet.PACKET_HANDSHAKE {
+		cLog.Error().Int("packetID", packetID).Msg("received first unknown packet")
 		return
 	}
 
-	h, err := proto.ReadHandshake(reader)
-	if err != nil {
+	h := &packet.Handshake{}
+	if err := h.Decode(frontendConn); err != nil {
 		cLog.Error().Err(err).Msg("error reading handshake")
 		return
 	}
 
 	// TODO: if h.Status == 1, return custom StatusResponse
-
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		cLog.Error().Err(err).Msg("failed to clear read deadline")
 		return
 	}
 
-	s.findAndConnectBackend(ctx, frontendConn, h)
+	s.findAndConnectBackend(ctx, frontendConn, h, t)
 }
 
-func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *proto.Handshake) {
-	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.Address).Uint16("handshakePort", h.Port).Logger()
-	cLog.Info().Msg("connecting to backend")
+func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
+	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
 
-	host, port := ResolveServerAddress(h.Address)
-	cLog.Info().Str("host", host).Int("port", port).Msg("found backend for connection")
+	host, port := ResolveServerAddress(h.ServerAddress)
+	log.Info().Str("host", host).Int("port", port).Msg("found backend for connection")
 
 	addr, err := net.ResolveTCPAddr("tcp", host+":"+strconv.Itoa(port))
 	if err != nil {
-		cLog.Error().Err(err).Msg("error resolving tcp address")
+		log.Error().Err(err).Msg("error resolving tcp address")
 		return
 	}
 
 	remote, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
-		cLog.Error().Err(err).Msg("unable to connect to backend")
+		log.Error().Err(err).Msg("unable to connect to backend")
 		return
 	}
 	defer remote.Close()
 
 	if err := remote.SetNoDelay(true); err != nil {
-		cLog.Error().Err(err).Msg("error setting TCPNoDelay to remote")
+		log.Error().Err(err).Msg("error setting TCPNoDelay to remote")
 	}
 
-	if err := h.Write(remote, host); err != nil {
-		cLog.Error().Err(err).Msg("failed to relay handshake!")
+	h.ServerAddress = host
+	if err := s.packetCoder.EncodePacket(remote, h); err != nil {
+		log.Error().Err(err).Msg("failed to relay handshake!")
 		return
 	}
 
+	log.Info().Dur("took", time.Since(t)).Msg("pipe with remote started")
 	s.pumpConnections(ctx, frontendConn, remote)
+	log.Info().Msg("piped with remote closed, connection closed")
 }
