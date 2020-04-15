@@ -59,18 +59,16 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, c
 		case <-time.After(bucket.Take(1)):
 			conn, err := ln.AcceptTCP()
 			if err != nil {
-				s.log.Error().
-					Err(err).
-					Str("remoteAddr", conn.RemoteAddr().String()).
+				s.log.Error().Err(err).Str("remoteAddr", conn.RemoteAddr().String()).
 					Msg("error accepting connection")
 			} else {
-				go s.handleConnection(ctx, conn)
+				go s.handleConnection(ctx, conn, time.Now())
 			}
 		}
 	}
 }
 
-func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn) {
+func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
 	// //noinspection GoUnhandledErrorResult
 	defer frontendConn.Close()
 
@@ -85,7 +83,6 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	t := time.Now()
 	packetID, err := s.packetCoder.DecodePacket(frontendConn)
 	if err != nil {
 		cLog.Error().Err(err).Msg("error reading packetID")
@@ -141,7 +138,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		return
 	}
 
-	log.Info().Dur("took", time.Since(t)).Msg("pipe with remote started")
+	log.Info().Msgf("pipe with remote started, took %s", time.Since(t))
 	s.pumpConnections(ctx, frontendConn, remote)
 	log.Info().Msg("piped with remote closed, connection closed")
 }
