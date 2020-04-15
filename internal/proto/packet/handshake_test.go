@@ -14,7 +14,7 @@ func BenchmarkHandshake_Write(b *testing.B) {
 		ServerPort:      25565,
 		State:           1,
 	}
-	p := proto.NewPacketDecoder()
+	p := proto.NewPacketCodec()
 	for i := 0; i < b.N; i++ {
 		if err := p.EncodePacket(ioutil.Discard, h); err != nil {
 			b.Error(err)

@@ -20,15 +20,13 @@ var noDeadline time.Time
 
 type MCServer struct {
 	log         zerolog.Logger
-	packetCoder proto.PacketCoder
+	packetCoder proto.PacketCodec
 }
 
 func NewConnector() *MCServer {
 	return &MCServer{
-		log: zerolog.New(zerolog.NewConsoleWriter()).
-			With().Timestamp().
-			Logger().Level(zerolog.InfoLevel),
-		packetCoder: proto.NewPacketDecoder(),
+		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.InfoLevel),
+		packetCoder: proto.NewPacketCodec(),
 	}
 }
 
@@ -138,7 +136,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		return
 	}
 
-	log.Info().Msgf("pipe with remote started, took %s", time.Since(t))
+	log.Info().Str("took", time.Since(t).String()).Msg("pipe with remote started")
 	s.pumpConnections(ctx, frontendConn, remote)
 	log.Info().Msg("piped with remote closed, connection closed")
 }

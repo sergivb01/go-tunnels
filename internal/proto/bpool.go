@@ -11,13 +11,9 @@ type BufferPool struct {
 	pool *sync.Pool
 }
 
-func NewBufferPool() *BufferPool {
-	return &BufferPool{
-		pool: &sync.Pool{
-			New: func() interface{} {
-				return new(bytes.Buffer)
-			},
-		}}
+// NewBuffer returns a new *bytes.Buffer, used for the pool
+func NewBuffer() interface{} {
+	return new(bytes.Buffer)
 }
 
 // Get gets a Buffer from the BufferPool, or creates a new one if none are
