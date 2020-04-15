@@ -7,7 +7,7 @@ import (
 
 const defaultMCPort = 25565
 
-var endLen = len(os.Getenv("CUSTOM_ENDING"))
+var endLen = len(os.Getenv("CUSTOM_ENDING")) + 1
 
 func ResolveServerAddress(serverAddress string) (string, int) {
 	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:len(serverAddress)-endLen])
