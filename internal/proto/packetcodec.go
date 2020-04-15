@@ -1,6 +1,7 @@
 package proto
 
 import (
+	"fmt"
 	"io"
 	"sync"
 
@@ -29,19 +30,22 @@ func (d *PacketCodec) EncodePacket(w io.Writer, p packet.Packet) error {
 	defer d.bpool.Put(buff)
 
 	if err := p.Encode(buff); err != nil {
-		return err
+		return fmt.Errorf("error encoding Packet to buffer: %w", err)
 	}
 
 	if err := packet.WriteVarInt(w, buff.Len()); err != nil {
-		return err
+		return fmt.Errorf("error encoding buffer length: %w", err)
 	}
 
 	if err := packet.WriteVarInt(w, p.ID()); err != nil {
-		return err
+		return fmt.Errorf("error encoding PacketID: %w", err)
 	}
 
-	_, err := w.Write(buff.Bytes())
-	return err
+	if _, err := w.Write(buff.Bytes()); err != nil {
+		return fmt.Errorf("error writing buffer to Writer: %w", err)
+	}
+
+	return nil
 }
 
 // DecodePacket reads and decodes the next Packet size and ID on the stream. Packets are expected to

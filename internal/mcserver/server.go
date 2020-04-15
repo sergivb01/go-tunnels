@@ -98,7 +98,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	// TODO: if h.Status == 1, return custom StatusResponse
+	// TODO: if h.Status == 1, return custom StatusResponse, otherwise read LoginStartPacket (https://wiki.vg/Protocol#Login_Start)
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		cLog.Error().Err(err).Msg("failed to clear read deadline")
 		return
