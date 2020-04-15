@@ -23,6 +23,10 @@ func ReadString(reader io.Reader) (val string, err error) {
 	if err != nil {
 		return
 	}
+	return ReadStringWithSize(reader, length)
+}
+
+func ReadStringWithSize(reader io.Reader, length int) (val string, err error) {
 	if length < 0 {
 		err = errors.New(fmt.Sprintf("Decode, String length is below zero: %d", length))
 		return

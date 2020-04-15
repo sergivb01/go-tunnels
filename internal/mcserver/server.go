@@ -70,37 +70,37 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 	// //noinspection GoUnhandledErrorResult
 	defer frontendConn.Close()
 
-	cLog := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
+	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
 
 	if err := frontendConn.SetNoDelay(true); err != nil {
-		cLog.Error().Err(err).Msg("error setting TCPNoDelay to frontendConn")
+		log.Error().Err(err).Msg("error setting TCPNoDelay to frontendConn")
 	}
 
 	if err := frontendConn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
-		cLog.Error().Err(err).Msg("failed to set read deadline")
+		log.Error().Err(err).Msg("failed to set read deadline")
 		return
 	}
 
 	packetID, err := s.packetCoder.ReadPacket(frontendConn)
 	if err != nil {
-		cLog.Error().Err(err).Msg("error reading packetID")
+		log.Error().Err(err).Msg("error reading packetID")
 		return
 	}
 
 	if packetID != packet.HandshakeId {
-		cLog.Error().Int("packetID", packetID).Msg("received first unknown packet")
+		log.Error().Int("packetID", packetID).Msg("received unknown first packet")
 		return
 	}
 
 	h := &packet.Handshake{}
 	if err := h.Decode(frontendConn); err != nil {
-		cLog.Error().Err(err).Msg("error reading handshake")
+		log.Error().Err(err).Msg("error reading handshake")
 		return
 	}
 
 	// TODO: if h.Status == 1, return custom StatusResponse, otherwise read LoginStartPacket (https://wiki.vg/Protocol#Login_Start)
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
-		cLog.Error().Err(err).Msg("failed to clear read deadline")
+		log.Error().Err(err).Msg("failed to clear read deadline")
 		return
 	}
 
@@ -109,6 +109,28 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 
 func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
 	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
+
+	login := &packet.LoginStart{}
+	if h.State == 2 {
+		packetID, err := s.packetCoder.ReadPacket(frontendConn)
+		if err != nil {
+			log.Error().Err(err).Msg("error reading packetID")
+			return
+		}
+
+		if packetID != packet.HandshakeId {
+			log.Error().Int("packetID", packetID).Msg("received unknown second packet")
+			return
+		}
+
+		if err := login.Decode(frontendConn); err != nil {
+			log.Error().Err(err).Msg("error decoding LoginStart")
+			return
+		}
+
+		log = log.With().Str("playerName", login.Name).Logger()
+		log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
+	}
 
 	host, port := ResolveServerAddress(h.ServerAddress)
 	log.Info().Str("host", host).Int("port", port).Msg("found backend for connection")
@@ -134,6 +156,13 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	if err := s.packetCoder.WritePacket(remote, h); err != nil {
 		log.Error().Err(err).Msg("failed to relay handshake!")
 		return
+	}
+
+	if h.State == 2 {
+		if err := s.packetCoder.WritePacket(remote, login); err != nil {
+			log.Error().Err(err).Msg("failed to relay login!")
+			return
+		}
 	}
 
 	log.Info().Str("took", time.Since(t).String()).Msg("pipe with remote started")
