@@ -18,7 +18,7 @@ func BenchmarkHandshake_Write(b *testing.B) {
 	}
 	p := NewPacketCodec()
 	for i := 0; i < b.N; i++ {
-		if err := p.EncodePacket(ioutil.Discard, h); err != nil {
+		if err := p.WritePacket(ioutil.Discard, h); err != nil {
 			b.Error(err)
 		}
 	}

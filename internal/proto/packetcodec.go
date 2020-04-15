@@ -24,8 +24,8 @@ func NewPacketCodec() PacketCodec {
 	}
 }
 
-// EncodePacket encodes a Packet into the writer using the format (see comment from DecodePacket)
-func (d *PacketCodec) EncodePacket(w io.Writer, p packet.Packet) error {
+// WritePacket encodes a Packet into the writer using the format (see comment from ReadPacket)
+func (d *PacketCodec) WritePacket(w io.Writer, p packet.Packet) error {
 	buff := d.bpool.Get()
 	defer d.bpool.Put(buff)
 
@@ -48,7 +48,7 @@ func (d *PacketCodec) EncodePacket(w io.Writer, p packet.Packet) error {
 	return nil
 }
 
-// DecodePacket reads and decodes the next Packet size and ID on the stream. Packets are expected to
+// ReadPacket reads and decodes the next Packet size and ID on the stream. Packets are expected to
 // be in the following format, as described on
 // http://wiki.vg/Protocol#Without_compression:
 //
@@ -63,7 +63,7 @@ func (d *PacketCodec) EncodePacket(w io.Writer, p packet.Packet) error {
 // a nil pointer will be returned and the error will be propagated up.
 // TODO: if size is too small we could try and not read the packet as it will probably be invalid?
 // TODO: also decode packet and return it, then use pk.(*PacketType) to handle it where necessary
-func (d *PacketCodec) DecodePacket(r io.Reader) (int, error) {
+func (d *PacketCodec) ReadPacket(r io.Reader) (int, error) {
 	// packet length, we don't care about the size but we need to read those bytes
 	if _, err := packet.ReadVarInt(r); err != nil {
 		return 0, err

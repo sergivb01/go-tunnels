@@ -81,7 +81,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	packetID, err := s.packetCoder.DecodePacket(frontendConn)
+	packetID, err := s.packetCoder.ReadPacket(frontendConn)
 	if err != nil {
 		cLog.Error().Err(err).Msg("error reading packetID")
 		return
@@ -131,7 +131,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	}
 
 	h.ServerAddress = host
-	if err := s.packetCoder.EncodePacket(remote, h); err != nil {
+	if err := s.packetCoder.WritePacket(remote, h); err != nil {
 		log.Error().Err(err).Msg("failed to relay handshake!")
 		return
 	}
