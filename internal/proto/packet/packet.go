@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	PACKET_HANDSHAKE = 0x00
+	HandshakeId = 0x00
 )
 
 type Packet interface {

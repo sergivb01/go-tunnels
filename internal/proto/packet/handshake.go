@@ -52,5 +52,5 @@ func (h *Handshake) Decode(reader io.Reader) error {
 }
 
 func (h *Handshake) ID() int {
-	return PACKET_HANDSHAKE
+	return HandshakeId
 }

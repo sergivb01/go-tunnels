@@ -87,7 +87,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	if packetID != packet.PACKET_HANDSHAKE {
+	if packetID != packet.HandshakeId {
 		cLog.Error().Int("packetID", packetID).Msg("received first unknown packet")
 		return
 	}
