@@ -134,14 +134,11 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
 	}
 
-	host, port := s.ResolveServerAddress(h.ServerAddress)
-	log.Info().Str("hostPort", host+":"+port).Msg("found backend for connection")
-
-	addr, err := net.ResolveTCPAddr("tcp", host+":"+port)
+	host, addr, err := s.ResolveServerAddress(h.ServerAddress)
 	if err != nil {
 		log.Error().Err(err).Msg("error resolving tcp address")
-		return
 	}
+	log.Info().Str("hostPort", addr.String()).Msg("found backend for connection")
 
 	remote, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {

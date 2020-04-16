@@ -4,8 +4,6 @@ import (
 	"net"
 	"os"
 	"strconv"
-
-	"github.com/patrickmn/go-cache"
 )
 
 const defaultMCPort = "25565"
@@ -14,12 +12,12 @@ var endLen = len(os.Getenv("CUSTOM_ENDING")) + 1
 
 type connDetails struct {
 	host string
-	port string
+	addr *net.TCPAddr
 }
 
-func (s *MCServer) ResolveServerAddress(serverAddress string) (string, string) {
+func (s *MCServer) ResolveServerAddress(serverAddress string) (string, *net.TCPAddr, error) {
 	if details, found := s.c.Get(serverAddress); found {
-		return details.(*connDetails).host, details.(*connDetails).port
+		return details.(*connDetails).host, details.(*connDetails).addr, nil
 	}
 
 	var (
@@ -32,10 +30,15 @@ func (s *MCServer) ResolveServerAddress(serverAddress string) (string, string) {
 		h, port = addrs[0].Target, strconv.Itoa(int(addrs[0].Port))
 	}
 
-	s.c.Set(serverAddress, &connDetails{
-		host: h,
-		port: port,
-	}, cache.DefaultExpiration)
+	addr, err := net.ResolveTCPAddr("tcp", h+":"+port)
+	if err != nil {
+		return "", nil, err
+	}
 
-	return h, port
+	s.c.SetDefault(serverAddress, &connDetails{
+		host: h,
+		addr: addr,
+	})
+
+	return h, addr, nil
 }
