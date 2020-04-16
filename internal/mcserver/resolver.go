@@ -3,16 +3,39 @@ package mcserver
 import (
 	"net"
 	"os"
+	"strconv"
+
+	"github.com/patrickmn/go-cache"
 )
 
-const defaultMCPort = 25565
+const defaultMCPort = "25565"
 
 var endLen = len(os.Getenv("CUSTOM_ENDING")) + 1
 
-func ResolveServerAddress(serverAddress string) (string, int) {
-	_, addrs, err := net.LookupSRV("minecraft", "tcp", serverAddress[:len(serverAddress)-endLen])
-	if err != nil || len(addrs) == 0 {
-		return serverAddress[:len(serverAddress)-endLen], defaultMCPort
+type connDetails struct {
+	host string
+	port string
+}
+
+func (s *MCServer) ResolveServerAddress(serverAddress string) (string, string) {
+	if details, found := s.c.Get(serverAddress); found {
+		return details.(*connDetails).host, details.(*connDetails).port
 	}
-	return addrs[0].Target, int(addrs[0].Port)
+
+	var (
+		h    = serverAddress[:len(serverAddress)-endLen]
+		port = defaultMCPort
+	)
+
+	_, addrs, err := net.LookupSRV("minecraft", "tcp", h)
+	if err == nil && len(addrs) != 0 {
+		h, port = addrs[0].Target, strconv.Itoa(int(addrs[0].Port))
+	}
+
+	s.c.Set(serverAddress, &connDetails{
+		host: h,
+		port: port,
+	}, cache.DefaultExpiration)
+
+	return h, port
 }

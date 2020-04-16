@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/juju/ratelimit"
+	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 
 	"github.com/sergivb01/mctunnel/internal/proto"
@@ -21,12 +21,14 @@ var noDeadline time.Time
 type MCServer struct {
 	log         zerolog.Logger
 	packetCoder proto.PacketCodec
+	c           *cache.Cache
 }
 
 func NewConnector() *MCServer {
 	return &MCServer{
 		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.InfoLevel),
 		packetCoder: proto.NewPacketCodec(),
+		c:           cache.New(time.Minute*5, time.Minute*10),
 	}
 }
 
@@ -132,10 +134,10 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
 	}
 
-	host, port := ResolveServerAddress(h.ServerAddress)
-	log.Info().Str("host", host).Int("port", port).Msg("found backend for connection")
+	host, port := s.ResolveServerAddress(h.ServerAddress)
+	log.Info().Str("hostPort", host+":"+port).Msg("found backend for connection")
 
-	addr, err := net.ResolveTCPAddr("tcp", host+":"+strconv.Itoa(port))
+	addr, err := net.ResolveTCPAddr("tcp", host+":"+port)
 	if err != nil {
 		log.Error().Err(err).Msg("error resolving tcp address")
 		return
