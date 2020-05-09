@@ -100,7 +100,20 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	// TODO: if h.Status == 1, return custom StatusResponse, otherwise read LoginStartPacket (https://wiki.vg/Protocol#Login_Start)
+	if h.State == 1 {
+		// TODO: save this packet in const and send it to frontendConn on error
+		if err := s.packetCoder.WritePacket(frontendConn, &packet.ServerStatus{
+			ServerName: "Minebreach",
+			Protocol:   h.ProtocolVersion,
+			MOTD:       "§3§lMineBreach Tunnels\n§cError - Unknown hostname",
+			Favicon:    "",
+		}); err != nil {
+			log.Error().Err(err).Msg("error sending custom ServerListPing response")
+			return
+		}
+		return
+	}
+
 	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
 		log.Error().Err(err).Msg("failed to clear read deadline")
 		return
@@ -113,6 +126,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
 
 	login := &packet.LoginStart{}
+	// TODO: cleanup logic
 	if h.State == 2 {
 		packetID, err := s.packetCoder.ReadPacket(frontendConn)
 		if err != nil {

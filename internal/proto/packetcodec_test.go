@@ -9,7 +9,6 @@ import (
 )
 
 // TODO: add Read method with a const byte slice of an example handshake
-
 func BenchmarkHandshake_Write(b *testing.B) {
 	h := &packet.Handshake{
 		ProtocolVersion: 47,

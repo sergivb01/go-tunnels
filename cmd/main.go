@@ -8,7 +8,7 @@ import (
 
 func main() {
 	conn := mcserver.NewConnector()
-	if err := conn.Start(context.Background(), ":25565", 500000); err != nil {
+	if err := conn.Start(context.Background(), ":25565", 500); err != nil {
 		panic(err)
 	}
 }

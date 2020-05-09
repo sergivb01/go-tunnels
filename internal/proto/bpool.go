@@ -5,8 +5,7 @@ import (
 	"sync"
 )
 
-// BufferPool implements a pool of bytes.Buffers in the form of a bounded
-// channel.
+// BufferPool implements a pool of bytes.Buffers in the form of sync.Pool
 type BufferPool struct {
 	pool *sync.Pool
 }

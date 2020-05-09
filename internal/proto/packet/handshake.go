@@ -12,45 +12,45 @@ type Handshake struct {
 	State           int
 }
 
-func (h *Handshake) Encode(writer io.Writer) error {
-	if err := WriteVarInt(writer, h.ProtocolVersion); err != nil {
+func (h *Handshake) Encode(w io.Writer) error {
+	if err := WriteVarInt(w, h.ProtocolVersion); err != nil {
 		return fmt.Errorf("error encoding ProtocolVersion: %w", err)
 	}
 
-	if err := WriteString(writer, h.ServerAddress); err != nil {
+	if err := WriteString(w, h.ServerAddress); err != nil {
 		return fmt.Errorf("error encoding ServerAddress: %w", err)
 	}
 
-	if err := WriteUint16(writer, h.ServerPort); err != nil {
+	if err := WriteUint16(w, h.ServerPort); err != nil {
 		return fmt.Errorf("error encoding ServerPort: %w", err)
 	}
 
-	if err := WriteVarInt(writer, h.State); err != nil {
+	if err := WriteVarInt(w, h.State); err != nil {
 		return fmt.Errorf("error encoding State: %w", err)
 	}
 
 	return nil
 }
 
-func (h *Handshake) Decode(reader io.Reader) error {
+func (h *Handshake) Decode(r io.Reader) error {
 	var err error
 
-	h.ProtocolVersion, err = ReadVarInt(reader)
+	h.ProtocolVersion, err = ReadVarInt(r)
 	if err != nil {
 		return fmt.Errorf("error reading ProtocolVersion: %w", err)
 	}
 
-	h.ServerAddress, err = ReadString(reader)
+	h.ServerAddress, err = ReadString(r)
 	if err != nil {
 		return fmt.Errorf("error reading ServerAddress: %w", err)
 	}
 
-	h.ServerPort, err = ReadUint16(reader)
+	h.ServerPort, err = ReadUint16(r)
 	if err != nil {
 		return fmt.Errorf("error reading ServerPort: %w", err)
 	}
 
-	h.State, err = ReadVarInt(reader)
+	h.State, err = ReadVarInt(r)
 	if err != nil {
 		return fmt.Errorf("error reading State: %w", err)
 	}

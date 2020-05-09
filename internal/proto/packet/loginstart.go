@@ -9,19 +9,19 @@ type LoginStart struct {
 	Name string
 }
 
-func (s *LoginStart) Encode(writer io.Writer) error {
-	if err := WriteString(writer, s.Name); err != nil {
-		return fmt.Errorf("error encoding Name: %w", err)
+func (s *LoginStart) Encode(w io.Writer) error {
+	if err := WriteString(w, s.Name); err != nil {
+		return fmt.Errorf("error encoding Json: %w", err)
 	}
 	return nil
 }
 
-func (s *LoginStart) Decode(reader io.Reader) error {
+func (s *LoginStart) Decode(r io.Reader) error {
 	var err error
 
-	s.Name, err = ReadString(reader)
+	s.Name, err = ReadString(r)
 	if err != nil {
-		return fmt.Errorf("error reading Name: %w", err)
+		return fmt.Errorf("error reading Json: %w", err)
 	}
 
 	return nil
