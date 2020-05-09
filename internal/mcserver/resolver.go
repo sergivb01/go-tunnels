@@ -15,7 +15,7 @@ type connDetails struct {
 	addr *net.TCPAddr
 }
 
-func (s *MCServer) ResolveServerAddress(serverAddress string) (string, *net.TCPAddr, error) {
+func (s *MCServer) resolveServerAddress(serverAddress string) (string, *net.TCPAddr, error) {
 	if details, found := s.c.Get(serverAddress); found {
 		return details.(*connDetails).host, details.(*connDetails).addr, nil
 	}

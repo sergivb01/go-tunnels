@@ -18,12 +18,14 @@ const handshakeTimeout = 1 * time.Second
 
 var noDeadline time.Time
 
+// MCServer defines a Minecraft relay server
 type MCServer struct {
 	log         zerolog.Logger
 	packetCoder proto.PacketCodec
 	c           *cache.Cache
 }
 
+// NewConnector creates a new MCServer
 func NewConnector() *MCServer {
 	return &MCServer{
 		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.InfoLevel),
@@ -32,6 +34,7 @@ func NewConnector() *MCServer {
 	}
 }
 
+// Start starts listening for new connections
 func (s *MCServer) Start(ctx context.Context, listenAddress string, connRateLimit int) error {
 	addr, err := net.ResolveTCPAddr("tcp", listenAddress)
 	if err != nil {
@@ -88,7 +91,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	if packetID != packet.HandshakeId {
+	if packetID != packet.HandshakeID {
 		log.Error().Int("packetID", packetID).Msg("received unknown first packet")
 		return
 	}
@@ -133,7 +136,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 			return
 		}
 
-		if packetID != packet.HandshakeId {
+		if packetID != packet.HandshakeID {
 			log.Error().Int("packetID", packetID).Msg("received unknown second packet")
 			return
 		}
@@ -147,7 +150,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
 	}
 
-	host, addr, err := s.ResolveServerAddress(h.ServerAddress)
+	host, addr, err := s.resolveServerAddress(h.ServerAddress)
 	if err != nil {
 		log.Error().Err(err).Msg("error resolving tcp address")
 	}

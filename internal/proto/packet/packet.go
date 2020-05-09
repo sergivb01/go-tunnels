@@ -5,9 +5,11 @@ import (
 )
 
 const (
-	HandshakeId = 0x00
+	// HandshakeID is the ID from the Handshaking state
+	HandshakeID = 0x00
 )
 
+// Packet specifies the interface for a Minecraft Packet
 type Packet interface {
 	// Encode encodes a Packet into a io.Writer
 	Encode(writer io.Writer) error

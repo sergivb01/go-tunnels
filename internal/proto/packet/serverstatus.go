@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// ServerStatus specifies the https://wiki.vg/Protocol#Status
 type ServerStatus struct {
 	ServerName string
 	Protocol   int
@@ -27,6 +28,7 @@ const baseFormat = `{
     "favicon": "%s"
 }`
 
+// Encode encodes the ServerStatus
 func (s *ServerStatus) Encode(w io.Writer) error {
 	if err := WriteString(w, fmt.Sprintf(baseFormat, s.ServerName, s.Protocol, s.Motd, s.Favicon)); err != nil {
 		return fmt.Errorf("error encoding Json: %w", err)
@@ -34,10 +36,12 @@ func (s *ServerStatus) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode should not be used
 func (s *ServerStatus) Decode(_ io.Reader) error {
 	return fmt.Errorf("not implemented")
 }
 
+// ID returns the ServerStatus-PacketID
 func (s *ServerStatus) ID() int {
-	return HandshakeId
+	return HandshakeID
 }

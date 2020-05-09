@@ -5,6 +5,7 @@ import (
 	"io"
 )
 
+// Handshake specifies the https://wiki.vg/Protocol#Handshake
 type Handshake struct {
 	ProtocolVersion int
 	ServerAddress   string
@@ -12,6 +13,7 @@ type Handshake struct {
 	State           int
 }
 
+// Encode encodes the Handshake
 func (h *Handshake) Encode(w io.Writer) error {
 	if err := WriteVarInt(w, h.ProtocolVersion); err != nil {
 		return fmt.Errorf("error encoding ProtocolVersion: %w", err)
@@ -32,6 +34,7 @@ func (h *Handshake) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes a Handshake
 func (h *Handshake) Decode(r io.Reader) error {
 	var err error
 
@@ -58,6 +61,7 @@ func (h *Handshake) Decode(r io.Reader) error {
 	return nil
 }
 
+// ID returns the Handshake-PacketID
 func (h *Handshake) ID() int {
-	return HandshakeId
+	return HandshakeID
 }

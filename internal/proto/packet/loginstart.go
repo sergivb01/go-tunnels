@@ -5,10 +5,12 @@ import (
 	"io"
 )
 
+// LoginStart specifies the https://wiki.vg/Protocol#Login_Start
 type LoginStart struct {
 	Name string
 }
 
+// Encode encodes the LoginStart
 func (s *LoginStart) Encode(w io.Writer) error {
 	if err := WriteString(w, s.Name); err != nil {
 		return fmt.Errorf("error encoding Json: %w", err)
@@ -16,6 +18,7 @@ func (s *LoginStart) Encode(w io.Writer) error {
 	return nil
 }
 
+// Decode decodes a LoginStart
 func (s *LoginStart) Decode(r io.Reader) error {
 	var err error
 
@@ -27,6 +30,7 @@ func (s *LoginStart) Decode(r io.Reader) error {
 	return nil
 }
 
+// ID returns the LoginStart-PacketID
 func (s *LoginStart) ID() int {
-	return HandshakeId
+	return HandshakeID
 }

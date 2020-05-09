@@ -43,7 +43,7 @@ func TestPacketCodec_ReadPacket(t *testing.T) {
 		t.Errorf("error reading packet: %s", err)
 	}
 
-	if packetID != packet.HandshakeId {
+	if packetID != packet.HandshakeID {
 		t.Errorf("did not receive handshake, instead %d", packetID)
 	}
 
