@@ -69,9 +69,8 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, c
 }
 
 func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
-	// //noinspection GoUnhandledErrorResult
+	// noinspection GoUnhandledErrorResult
 	defer frontendConn.Close()
-
 	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
 
 	if err := frontendConn.SetNoDelay(true); err != nil {
@@ -159,6 +158,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		log.Error().Err(err).Msg("unable to connect to backend")
 		return
 	}
+	// noinspection GoUnhandledErrorResult
 	defer remote.Close()
 
 	if err := remote.SetNoDelay(true); err != nil {

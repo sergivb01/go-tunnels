@@ -52,6 +52,7 @@ func (d *PacketCodec) WritePacket(w io.Writer, p packet.Packet) error {
 	return nil
 }
 
+// ReadPackets reads a Packet following the specified format in and returns the PacketID and error
 func (d *PacketCodec) ReadPacket(r io.Reader) (int, error) {
 	if _, err := packet.ReadVarInt(r); err != nil {
 		return 0, fmt.Errorf("reading length: %w", err)
