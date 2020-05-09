@@ -34,17 +34,6 @@ jobs:
       - name: Test
         run: go test ./...
 
-  imports:
-    name: Imports
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: check
-        uses: grandcolline/golang-github-actions@v1.1.0
-        with:
-          run: imports
-          token: ${{ secrets.GITHUB_TOKEN }}
-
   errcheck:
     name: Errcheck
     runs-on: ubuntu-latest
@@ -65,17 +54,6 @@ jobs:
         uses: grandcolline/golang-github-actions@v1.1.0
         with:
           run: lint
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-  shadow:
-    name: Shadow
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - name: check
-        uses: grandcolline/golang-github-actions@v1.1.0
-        with:
-          run: shadow
           token: ${{ secrets.GITHUB_TOKEN }}
 
   staticcheck:
