@@ -24,7 +24,7 @@ func BenchmarkPacketCodec_ReadPacket(b *testing.B) {
 	}
 }
 
-func TestPacketCodec_ReadPacket(t *testing.T){
+func TestPacketCodec_ReadPacket(t *testing.T) {
 	p := NewPacketCodec()
 
 	h := &packet.Handshake{

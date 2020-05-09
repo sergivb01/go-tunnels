@@ -104,7 +104,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		if err := s.packetCoder.WritePacket(frontendConn, &packet.ServerStatus{
 			ServerName: "Minebreach",
 			Protocol:   h.ProtocolVersion,
-			MOTD:       "§3§lMineBreach Tunnels\n§cError - Unknown hostname",
+			Motd:       "§3§lMineBreach Tunnels\n§cError - Unknown hostname",
 			Favicon:    "",
 		}); err != nil {
 			log.Error().Err(err).Msg("error sending custom ServerListPing response")

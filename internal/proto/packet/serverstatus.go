@@ -8,7 +8,7 @@ import (
 type ServerStatus struct {
 	ServerName string
 	Protocol   int
-	MOTD       string
+	Motd       string
 	Favicon    string
 }
 
@@ -28,13 +28,13 @@ const baseFormat = `{
 }`
 
 func (s *ServerStatus) Encode(w io.Writer) error {
-	if err := WriteString(w, fmt.Sprintf(baseFormat, s.ServerName, s.Protocol, s.MOTD, s.Favicon)); err != nil {
+	if err := WriteString(w, fmt.Sprintf(baseFormat, s.ServerName, s.Protocol, s.Motd, s.Favicon)); err != nil {
 		return fmt.Errorf("error encoding Json: %w", err)
 	}
 	return nil
 }
 
-func (s *ServerStatus) Decode(r io.Reader) error {
+func (s *ServerStatus) Decode(_ io.Reader) error {
 	return fmt.Errorf("not implemented")
 }
 

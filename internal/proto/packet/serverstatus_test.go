@@ -10,7 +10,7 @@ func TestServerStatus_Encode(t *testing.T) {
 	p := &ServerStatus{
 		ServerName: "Minebreach",
 		Protocol:   47,
-		MOTD:       "Skere",
+		Motd:       "Skere",
 		Favicon:    "",
 	}
 	w := &bytes.Buffer{}
