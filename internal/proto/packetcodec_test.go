@@ -9,7 +9,7 @@ import (
 )
 
 // TODO: add Read method with a const byte slice of an example handshake
-func BenchmarkHandshake_Write(b *testing.B) {
+func BenchmarkPacketCodec_ReadPacket(b *testing.B) {
 	h := &packet.Handshake{
 		ProtocolVersion: 47,
 		ServerAddress:   "lunar.gg.tunnel.sergitest.dev",
@@ -24,7 +24,7 @@ func BenchmarkHandshake_Write(b *testing.B) {
 	}
 }
 
-func TestEncodeDecode(t *testing.T){
+func TestPacketCodec_ReadPacket(t *testing.T){
 	p := NewPacketCodec()
 
 	h := &packet.Handshake{
