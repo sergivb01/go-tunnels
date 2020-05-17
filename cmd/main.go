@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/sergivb01/mctunnel/internal/mcserver"
+	"github.com/minebreach/go-tunnels/internal/mcserver"
 )
 
 func main() {

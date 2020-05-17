@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/sergivb01/mctunnel/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/internal/proto/packet"
 )
 
 // TODO: add Read method with a const byte slice of an example handshake

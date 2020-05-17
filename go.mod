@@ -1,4 +1,4 @@
-module github.com/sergivb01/mctunnel
+module github.com/minebreach/go-tunnels
 
 go 1.14
 

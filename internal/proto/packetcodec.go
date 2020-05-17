@@ -5,7 +5,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/sergivb01/mctunnel/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/internal/proto/packet"
 )
 
 // PacketCodec manages the (de)code-ing of Minecraft packets

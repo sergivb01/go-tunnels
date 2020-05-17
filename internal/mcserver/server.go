@@ -10,8 +10,8 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 
-	"github.com/sergivb01/mctunnel/internal/proto"
-	"github.com/sergivb01/mctunnel/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/internal/proto"
+	"github.com/minebreach/go-tunnels/internal/proto/packet"
 )
 
 const handshakeTimeout = 1 * time.Second
