@@ -6,9 +6,11 @@ import (
 )
 
 const (
-	// HandshakeID is the ID from the Handshaking state
+	// HandshakeID is the ID from the Handshaking
 	HandshakeID = 0x00
-	PingID      = 0x01
+
+	// PingID represents the ID from the Ping packet
+	PingID = 0x01
 )
 
 var errNotImplemented = errors.New("not implemented")
