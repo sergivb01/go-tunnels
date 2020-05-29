@@ -16,7 +16,7 @@ type Handshake struct {
 // Encode encodes the Handshake
 func (h *Handshake) Encode(w io.Writer) error {
 	if err := WriteVarInt(w, h.ProtocolVersion); err != nil {
-		return fmt.Errorf("error encoding ProtocolVersion: %w", err)
+		return fmt.Errorf("error encoding Payload: %w", err)
 	}
 
 	if err := WriteString(w, h.ServerAddress); err != nil {
@@ -40,7 +40,7 @@ func (h *Handshake) Decode(r io.Reader) error {
 
 	h.ProtocolVersion, err = ReadVarInt(r)
 	if err != nil {
-		return fmt.Errorf("error reading ProtocolVersion: %w", err)
+		return fmt.Errorf("error reading Payload: %w", err)
 	}
 
 	h.ServerAddress, err = ReadString(r)

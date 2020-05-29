@@ -13,20 +13,21 @@ type ServerStatus struct {
 	Favicon    string
 }
 
-const baseFormat = `{
-    "version": {
-        "name": "%s",
-        "protocol": %d
-    },
-    "players": {
-        "max": 0,
-        "online": 0
-    },
-    "description": {
-        "text": "%s"
-    },
-    "favicon": "%s"
-}`
+// {
+//    "version": {
+//        "name": "%s",
+//        "protocol": %d
+//    },
+//    "players": {
+//        "max": 0,
+//        "online": 0
+//    },
+//    "description": {
+//        "text": "%s"
+//    },
+//    "favicon": "%s"
+// }
+const baseFormat = "{\"version\": {\"name\": \"%s\",\"protocol\": %d},\"players\": {\"max\": 0,\"online\": 0},\"description\": {\"text\": \"%s\"},\"favicon\": \"%s\"}"
 
 // Encode encodes the ServerStatus
 func (s *ServerStatus) Encode(w io.Writer) error {
@@ -38,7 +39,7 @@ func (s *ServerStatus) Encode(w io.Writer) error {
 
 // Decode should not be used
 func (s *ServerStatus) Decode(_ io.Reader) error {
-	return fmt.Errorf("not implemented")
+	return errNotImplemented
 }
 
 // ID returns the ServerStatus-PacketID

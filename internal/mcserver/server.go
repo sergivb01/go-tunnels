@@ -28,7 +28,7 @@ type MCServer struct {
 // NewConnector creates a new MCServer
 func NewConnector() *MCServer {
 	return &MCServer{
-		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.InfoLevel),
+		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.DebugLevel),
 		packetCoder: proto.NewPacketCodec(),
 		c:           cache.New(time.Minute*5, time.Minute*10),
 	}
@@ -94,6 +94,21 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
+	if packetID == packet.PingID {
+		p := &packet.Ping{}
+		if err := p.Decode(frontendConn); err != nil {
+			log.Error().Err(err).Msg("error reading ping packet")
+			return
+		}
+
+		if err := s.packetCoder.WritePacket(frontendConn, p); err != nil {
+			log.Error().Err(err).Msg("error sending ping packet")
+		}
+
+		log.Debug().Msg("received ping pong eat my ding dong!")
+		return
+	}
+
 	if packetID != packet.HandshakeID {
 		log.Error().Int("packetID", packetID).Msg("received unknown first packet")
 		return
@@ -114,7 +129,6 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 			Favicon:    "",
 		}); err != nil {
 			log.Error().Err(err).Msg("error sending custom ServerListPing response")
-			return
 		}
 		return
 	}
@@ -155,7 +169,8 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 
 	host, addr, err := s.resolveServerAddress(h.ServerAddress)
 	if err != nil {
-		log.Error().Err(err).Msg("error resolving tcp address")
+		log.Error().Err(err).Str("serverAddress", h.ServerAddress).Msg("error resolving tcp address")
+		return
 	}
 	log.Info().Str("hostPort", addr.String()).Msg("found backend for connection")
 
@@ -192,3 +207,9 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	s.pumpConnections(ctx, frontendConn, remote)
 	log.Info().Msg("piped with remote closed, connection closed")
 }
+
+// func (s *MCServer) kickError(w io.Writer, reason string, err error) {
+// 	_ = s.packetCoder.WritePacket(w, &packet.LoginDisconnect{
+// 		Reason: "[\"\",{\"text\":\"Minebreach\",\"bold\":true,\"color\":\"blue\"},{\"text\":\" Tunnels\\n\"},{\"text\":\"Error! " + reason + ":\",\"color\":\"red\"},{\"text\":\"\\n\"},{\"text\":\"" + err.Error() + "\",\"color\":\"yellow\"}]",
+// 	})
+// }

@@ -2,11 +2,10 @@ package packet
 
 import (
 	"bytes"
-	"io/ioutil"
 	"testing"
 )
 
-func TestHandshake_EncodeDecode(t *testing.T) {
+func TestHandshake_Encode(t *testing.T) {
 	h := &Handshake{
 		ProtocolVersion: 47,
 		ServerAddress:   "rizonmc.net",
@@ -46,29 +45,6 @@ func TestHandshake_EncodeDecode(t *testing.T) {
 	}
 }
 
-func BenchmarkHandshake_EncodeDecode(t *testing.B) {
-	h := &Handshake{
-		ProtocolVersion: 47,
-		ServerAddress:   "rizonmc.net",
-		ServerPort:      25565,
-		State:           1,
-	}
-
-	for i := 0; i < t.N; i++ {
-		w := &bytes.Buffer{}
-		if err := h.Encode(w); err != nil {
-			t.Errorf("Encode() error %v", err)
-			return
-		}
-
-		dH := &Handshake{}
-		if err := dH.Decode(w); err != nil {
-			t.Errorf("Decode() error %v", err)
-			return
-		}
-	}
-}
-
 func BenchmarkHandshake_Encode(t *testing.B) {
 	h := &Handshake{
 		ProtocolVersion: 47,
@@ -77,10 +53,18 @@ func BenchmarkHandshake_Encode(t *testing.B) {
 		State:           1,
 	}
 
+	w := &bytes.Buffer{}
 	for i := 0; i < t.N; i++ {
-		if err := h.Encode(ioutil.Discard); err != nil {
+		if err := h.Encode(w); err != nil {
 			t.Errorf("Encode() error %v", err)
 			return
 		}
+
+		if err := h.Decode(w); err != nil {
+			t.Errorf("Decode() error %v", err)
+			return
+		}
+
+		w.Reset()
 	}
 }

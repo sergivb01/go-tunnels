@@ -1,13 +1,17 @@
 package packet
 
 import (
+	"errors"
 	"io"
 )
 
 const (
 	// HandshakeID is the ID from the Handshaking state
 	HandshakeID = 0x00
+	PingID      = 0x01
 )
+
+var errNotImplemented = errors.New("not implemented")
 
 // Packet specifies the interface for a Minecraft Packet
 type Packet interface {
