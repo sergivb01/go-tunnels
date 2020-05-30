@@ -3,7 +3,9 @@ package mcserver
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"time"
 
 	"github.com/juju/ratelimit"
@@ -36,8 +38,19 @@ func NewConnector(configFile string) (*MCServer, error) {
 		logLevel = zerolog.DebugLevel
 	}
 
+	var w io.Writer = zerolog.NewConsoleWriter()
+	if cfg.Production {
+		w = os.Stdout
+	}
+
+	hostName, err := os.Hostname()
+	if err != nil {
+		return nil, fmt.Errorf("getting hostname: %w", err)
+	}
+
 	return &MCServer{
-		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(logLevel),
+		log: zerolog.New(w).With().Str("hostname", hostName).
+			Timestamp().Logger().Level(logLevel),
 		packetCoder: proto.NewPacketCodec(),
 		cfg:         *cfg,
 	}, nil

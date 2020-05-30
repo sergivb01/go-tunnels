@@ -9,10 +9,11 @@ import (
 
 // Config specifies the config for MCServer
 type Config struct {
-	Domain    string `json:"domain"`
-	Listen    string `json:"listen"`
-	Debug     bool   `json:"debug"`
-	Ratelimit struct {
+	Domain     string `json:"domain"`
+	Listen     string `json:"listen"`
+	Debug      bool   `json:"debug"`
+	Production bool   `json:"production"`
+	Ratelimit  struct {
 		Rate     int `json:"rate"`
 		Capacity int `json:"capacity"`
 	} `json:"ratelimit"`
@@ -47,9 +48,10 @@ func readFromFile(fileName string) (*Config, error) {
 
 func writeDefaults() (*Config, error) {
 	cfg := &Config{
-		Domain: "tunnel.sergitest.dev",
-		Listen: ":25565",
-		Debug:  false,
+		Domain:     "tunnel.sergitest.dev",
+		Listen:     ":25565",
+		Debug:      false,
+		Production: false,
 		Ratelimit: struct {
 			Rate     int `json:"rate"`
 			Capacity int `json:"capacity"`
