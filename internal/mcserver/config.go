@@ -23,7 +23,7 @@ func readFromFile(fileName string) (*Config, error) {
 		return writeDefaults()
 	}
 
-	file, err := os.OpenFile(fileName, os.O_RDONLY, 600)
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("opening read-only file: %w", err)
 	}
@@ -64,7 +64,7 @@ func writeDefaults() (*Config, error) {
 		return nil, fmt.Errorf("marshaling default config: %w", err)
 	}
 
-	if err := ioutil.WriteFile("config.json", b, 600); err != nil {
+	if err := ioutil.WriteFile("config.json", b, 0600); err != nil {
 		return nil, fmt.Errorf("writing default config file: %w", err)
 	}
 
