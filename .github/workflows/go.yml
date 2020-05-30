@@ -34,9 +34,6 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Benchmark
-        run: go test -bench -benchmem ./...
-
   errcheck:
     name: Errcheck
     runs-on: ubuntu-latest
