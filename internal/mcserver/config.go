@@ -34,12 +34,12 @@ func readFromFile(fileName string) (*Config, error) {
 
 	b, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, fmt.Errorf("reading fileName: %w", err)
+		return nil, fmt.Errorf("reading file data: %w", err)
 	}
 
 	cfg := &Config{}
 	if err := json.Unmarshal(b, cfg); err != nil {
-		return nil, fmt.Errorf("unmarshaling fileName: %w", err)
+		return nil, fmt.Errorf("unmarshaling file data: %w", err)
 	}
 
 	return cfg, nil
