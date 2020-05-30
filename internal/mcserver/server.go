@@ -103,23 +103,8 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		return
 	}
 
-	if packetID == packet.PingID {
-		p := &packet.Ping{}
-		if err := p.Decode(frontendConn); err != nil {
-			log.Error().Err(err).Msg("reading ping packet")
-			return
-		}
-
-		if err := s.packetCoder.WritePacket(frontendConn, p); err != nil {
-			log.Error().Err(err).Msg("sending ping packet")
-		}
-
-		log.Debug().Msg("received ping pong eat my ding dong!")
-		return
-	}
-
 	if packetID != packet.HandshakeID {
-		log.Warn().Int("packetID", packetID).Msg("received unknown first packet")
+		log.Warn().Int("packetID", packetID).Msg("unexpected first packet")
 		return
 	}
 
@@ -139,6 +124,24 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 		}); err != nil {
 			log.Error().Err(err).Msg("sending custom ServerListPing response")
 		}
+
+		// TODO: check for packetID == packet.PingID
+		_, err := s.packetCoder.ReadPacket(frontendConn)
+		if err != nil {
+			log.Error().Err(err).Msg("reading packet after ServerStatus")
+			return
+		}
+
+		p := &packet.Ping{}
+		if err := p.Decode(frontendConn); err != nil {
+			log.Error().Err(err).Msg("reading ping packet")
+			return
+		}
+
+		if err := s.packetCoder.WritePacket(frontendConn, p); err != nil {
+			log.Error().Err(err).Msg("sending ping packet")
+		}
+
 		return
 	}
 
@@ -151,7 +154,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 }
 
 func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
-	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddress", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
+	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
 
 	login := &packet.LoginStart{}
 	// TODO: cleanup logic
@@ -163,7 +166,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		}
 
 		if packetID != packet.HandshakeID {
-			log.Warn().Int("packetID", packetID).Msg("received unknown second packet")
+			log.Warn().Int("packetID", packetID).Msg("unexpected packet after Handshake in LoginState")
 			return
 		}
 
@@ -181,7 +184,8 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 		log.Error().Err(err).Str("serverAddress", h.ServerAddress).Msg("resolving tcp address")
 		return
 	}
-	log.Info().Str("hostPort", addr.String()).Msg("found backend for connection")
+	log = log.With().Str("host", host).Logger()
+	log.Debug().Str("hostPort", addr.String()).Msg("found backend for connection")
 
 	remote, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
@@ -214,7 +218,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 
 	log.Info().Str("took", time.Since(t).String()).Msg("pipe with remote started")
 	s.pumpConnections(ctx, frontendConn, remote)
-	log.Info().Msg("piped with remote closed, connection closed")
+	log.Info().Str("sessionDuration", time.Since(t).String()).Msg("pipe with remote closed")
 }
 
 // func (s *MCServer) kickError(w io.Writer, reason string, err error) {
