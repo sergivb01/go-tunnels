@@ -2,22 +2,14 @@ package mcserver
 
 import (
 	"net"
-	"os"
 	"strconv"
 )
 
 const defaultMCPort = "25565"
 
-var endLen = len(os.Getenv("CUSTOM_ENDING")) + 1
-
-type connDetails struct {
-	host string
-	addr *net.TCPAddr
-}
-
 func (s *MCServer) resolveServerAddress(serverAddress string) (string, *net.TCPAddr, error) {
 	var (
-		h    = serverAddress[:len(serverAddress)-endLen]
+		h    = serverAddress[:len(serverAddress)-len(s.cfg.Domain)+1]
 		port = defaultMCPort
 	)
 

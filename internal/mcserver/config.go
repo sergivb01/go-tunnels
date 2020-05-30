@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+// Config specifies the config for MCServer
 type Config struct {
 	Domain    string `json:"domain"`
 	Listen    string `json:"listen"`
@@ -17,12 +18,21 @@ type Config struct {
 	} `json:"ratelimit"`
 }
 
-func ReadFromFile(fileName string) (*Config, error) {
+func readFromFile(fileName string) (*Config, error) {
 	if _, err := os.Stat(fileName); err != nil {
 		return writeDefaults()
 	}
 
-	b, err := ioutil.ReadFile(fileName)
+	file, err := os.OpenFile(fileName, os.O_RDONLY, 600)
+	if err != nil {
+		return nil, fmt.Errorf("opening read-only file: %w", err)
+	}
+
+	defer func() {
+		_ = file.Close()
+	}()
+
+	b, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("reading fileName: %w", err)
 	}
@@ -54,7 +64,7 @@ func writeDefaults() (*Config, error) {
 		return nil, fmt.Errorf("marshaling default config: %w", err)
 	}
 
-	if err := ioutil.WriteFile("config.json", b, 0644); err != nil {
+	if err := ioutil.WriteFile("config.json", b, 600); err != nil {
 		return nil, fmt.Errorf("writing default config file: %w", err)
 	}
 

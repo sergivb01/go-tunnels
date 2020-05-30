@@ -26,7 +26,7 @@ type MCServer struct {
 
 // NewConnector creates a new MCServer
 func NewConnector(configFile string) (*MCServer, error) {
-	cfg, err := ReadFromFile(configFile)
+	cfg, err := readFromFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("loading configuration: %w", err)
 	}
