@@ -22,7 +22,7 @@ func (s *MCServer) pumpConnections(ctx context.Context, frontendConn, backendCon
 		if err != io.EOF {
 			s.log.Error().Err(err).Str("client", clientAddr).
 				Str("backend", backendConn.RemoteAddr().String()).
-				Msg("error on connection relay")
+				Msg("on connection relay")
 		}
 	case <-ctx.Done():
 		s.log.Debug().Msg("received context cancellation")

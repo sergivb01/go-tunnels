@@ -35,12 +35,12 @@ func TestPacketCodec_ReadPacket(t *testing.T) {
 	}
 	buff := &bytes.Buffer{}
 	if err := p.WritePacket(buff, h); err != nil {
-		t.Errorf("error writing packet: %s", err)
+		t.Errorf("writing packet: %s", err)
 	}
 
 	packetID, err := p.ReadPacket(buff)
 	if err != nil {
-		t.Errorf("error reading packet: %s", err)
+		t.Errorf("reading packet: %s", err)
 	}
 
 	if packetID != packet.HandshakeID {
@@ -49,7 +49,7 @@ func TestPacketCodec_ReadPacket(t *testing.T) {
 
 	newH := &packet.Handshake{}
 	if err := newH.Decode(buff); err != nil {
-		t.Errorf("error decoding : %s", err)
+		t.Errorf("decoding : %s", err)
 	}
 
 }

@@ -13,7 +13,7 @@ type LoginDisconnect struct {
 // Encode encodes the LoginDisconnect
 func (d *LoginDisconnect) Encode(w io.Writer) error {
 	if err := WriteString(w, d.Reason); err != nil {
-		return fmt.Errorf("error encoding Reason: %w", err)
+		return fmt.Errorf("encoding Reason: %w", err)
 	}
 	return nil
 }

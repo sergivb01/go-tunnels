@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/juju/ratelimit"
-	"github.com/patrickmn/go-cache"
 	"github.com/rs/zerolog"
 
 	"github.com/minebreach/go-tunnels/internal/proto"
@@ -22,23 +21,33 @@ var noDeadline time.Time
 type MCServer struct {
 	log         zerolog.Logger
 	packetCoder proto.PacketCodec
-	c           *cache.Cache
+	cfg         Config
 }
 
 // NewConnector creates a new MCServer
-func NewConnector() *MCServer {
-	return &MCServer{
-		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(zerolog.DebugLevel),
-		packetCoder: proto.NewPacketCodec(),
-		c:           cache.New(time.Minute*5, time.Minute*10),
+func NewConnector(configFile string) (*MCServer, error) {
+	cfg, err := ReadFromFile(configFile)
+	if err != nil {
+		return nil, fmt.Errorf("loading configuration: %w", err)
 	}
+
+	logLevel := zerolog.InfoLevel
+	if cfg.Debug {
+		logLevel = zerolog.DebugLevel
+	}
+
+	return &MCServer{
+		log:         zerolog.New(zerolog.NewConsoleWriter()).With().Timestamp().Logger().Level(logLevel),
+		packetCoder: proto.NewPacketCodec(),
+		cfg:         *cfg,
+	}, nil
 }
 
 // Start starts listening for new connections
-func (s *MCServer) Start(ctx context.Context, listenAddress string, connRateLimit int) error {
-	addr, err := net.ResolveTCPAddr("tcp", listenAddress)
+func (s *MCServer) Start(ctx context.Context) error {
+	addr, err := net.ResolveTCPAddr("tcp", s.cfg.Listen)
 	if err != nil {
-		return fmt.Errorf("error resolving local adderss: %w", err)
+		return fmt.Errorf("resolving local adderss: %w", err)
 	}
 
 	ln, err := net.ListenTCP("tcp", addr)
@@ -46,13 +55,13 @@ func (s *MCServer) Start(ctx context.Context, listenAddress string, connRateLimi
 		s.log.Error().Err(err).Msg("unable to start listening")
 		return err
 	}
-	s.log.Info().Str("listenAddress", listenAddress).Msg("listening for MC client connections")
+	s.log.Info().Str("listenAddress", s.cfg.Listen).Msg("listening for MC client connections")
 
-	return s.acceptConnections(ctx, ln, connRateLimit)
+	return s.acceptConnections(ctx, ln)
 }
 
-func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, connRateLimit int) error {
-	bucket := ratelimit.NewBucketWithRate(float64(connRateLimit), int64(connRateLimit*2))
+func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) error {
+	bucket := ratelimit.NewBucketWithRate(float64(s.cfg.Ratelimit.Rate), int64(s.cfg.Ratelimit.Capacity))
 
 	for {
 		select {
@@ -63,7 +72,7 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, c
 			conn, err := ln.AcceptTCP()
 			if err != nil {
 				s.log.Error().Err(err).Str("remoteAddr", conn.RemoteAddr().String()).
-					Msg("error accepting connection")
+					Msg("accepting connection")
 			} else {
 				go s.handleConnection(ctx, conn, time.Now())
 			}
@@ -74,13 +83,13 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener, c
 func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
 	defer func() {
 		if err := frontendConn.Close(); err != nil {
-			s.log.Error().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("error closing frontend connection")
+			s.log.Warn().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("closing frontend connection")
 		}
 	}()
 	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
 
 	if err := frontendConn.SetNoDelay(true); err != nil {
-		log.Error().Err(err).Msg("error setting TCPNoDelay to frontendConn")
+		log.Warn().Err(err).Msg("setting TCPNoDelay to frontendConn")
 	}
 
 	if err := frontendConn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
@@ -90,19 +99,19 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 
 	packetID, err := s.packetCoder.ReadPacket(frontendConn)
 	if err != nil {
-		log.Error().Err(err).Msg("error reading packetID")
+		log.Error().Err(err).Msg("reading packetID")
 		return
 	}
 
 	if packetID == packet.PingID {
 		p := &packet.Ping{}
 		if err := p.Decode(frontendConn); err != nil {
-			log.Error().Err(err).Msg("error reading ping packet")
+			log.Error().Err(err).Msg("reading ping packet")
 			return
 		}
 
 		if err := s.packetCoder.WritePacket(frontendConn, p); err != nil {
-			log.Error().Err(err).Msg("error sending ping packet")
+			log.Error().Err(err).Msg("sending ping packet")
 		}
 
 		log.Debug().Msg("received ping pong eat my ding dong!")
@@ -110,13 +119,13 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 	}
 
 	if packetID != packet.HandshakeID {
-		log.Error().Int("packetID", packetID).Msg("received unknown first packet")
+		log.Warn().Int("packetID", packetID).Msg("received unknown first packet")
 		return
 	}
 
 	h := &packet.Handshake{}
 	if err := h.Decode(frontendConn); err != nil {
-		log.Error().Err(err).Msg("error reading handshake")
+		log.Error().Err(err).Msg("reading handshake")
 		return
 	}
 
@@ -128,7 +137,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 			Motd:       "§3§lMineBreach Tunnels\n§cError - Unknown hostname",
 			Favicon:    "",
 		}); err != nil {
-			log.Error().Err(err).Msg("error sending custom ServerListPing response")
+			log.Error().Err(err).Msg("sending custom ServerListPing response")
 		}
 		return
 	}
@@ -142,24 +151,24 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 }
 
 func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
-	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddres", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
+	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Str("handshakeAddress", h.ServerAddress).Uint16("handshakePort", h.ServerPort).Logger()
 
 	login := &packet.LoginStart{}
 	// TODO: cleanup logic
 	if h.State == 2 {
 		packetID, err := s.packetCoder.ReadPacket(frontendConn)
 		if err != nil {
-			log.Error().Err(err).Msg("error reading packetID")
+			log.Error().Err(err).Msg("reading packetID")
 			return
 		}
 
 		if packetID != packet.HandshakeID {
-			log.Error().Int("packetID", packetID).Msg("received unknown second packet")
+			log.Warn().Int("packetID", packetID).Msg("received unknown second packet")
 			return
 		}
 
 		if err := login.Decode(frontendConn); err != nil {
-			log.Error().Err(err).Msg("error decoding LoginStart")
+			log.Error().Err(err).Msg("decoding LoginStart")
 			return
 		}
 
@@ -169,7 +178,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 
 	host, addr, err := s.resolveServerAddress(h.ServerAddress)
 	if err != nil {
-		log.Error().Err(err).Str("serverAddress", h.ServerAddress).Msg("error resolving tcp address")
+		log.Error().Err(err).Str("serverAddress", h.ServerAddress).Msg("resolving tcp address")
 		return
 	}
 	log.Info().Str("hostPort", addr.String()).Msg("found backend for connection")
@@ -182,12 +191,12 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 
 	defer func() {
 		if err := remote.Close(); err != nil {
-			s.log.Error().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("error closing remote connection")
+			s.log.Warn().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("closing remote connection")
 		}
 	}()
 
 	if err := remote.SetNoDelay(true); err != nil {
-		log.Error().Err(err).Msg("error setting TCPNoDelay to remote")
+		log.Warn().Err(err).Msg("setting TCPNoDelay to remote")
 	}
 
 	h.ServerAddress = host

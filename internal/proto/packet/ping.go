@@ -13,7 +13,7 @@ type Ping struct {
 // Encode encodes the Ping
 func (p *Ping) Encode(w io.Writer) error {
 	if err := WriteInt64(w, p.Payload); err != nil {
-		return fmt.Errorf("error encoding PingPayload: %w", err)
+		return fmt.Errorf("encoding PingPayload: %w", err)
 	}
 	return nil
 }
@@ -24,7 +24,7 @@ func (p *Ping) Decode(r io.Reader) error {
 
 	p.Payload, err = ReadInt64(r)
 	if err != nil {
-		return fmt.Errorf("error reading Payload: %w", err)
+		return fmt.Errorf("reading Payload: %w", err)
 	}
 
 	return nil

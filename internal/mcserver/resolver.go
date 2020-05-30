@@ -16,10 +16,6 @@ type connDetails struct {
 }
 
 func (s *MCServer) resolveServerAddress(serverAddress string) (string, *net.TCPAddr, error) {
-	if details, found := s.c.Get(serverAddress); found {
-		return details.(*connDetails).host, details.(*connDetails).addr, nil
-	}
-
 	var (
 		h    = serverAddress[:len(serverAddress)-endLen]
 		port = defaultMCPort
@@ -34,11 +30,6 @@ func (s *MCServer) resolveServerAddress(serverAddress string) (string, *net.TCPA
 	if err != nil {
 		return "", nil, err
 	}
-
-	s.c.SetDefault(serverAddress, &connDetails{
-		host: h,
-		addr: addr,
-	})
 
 	return h, addr, nil
 }

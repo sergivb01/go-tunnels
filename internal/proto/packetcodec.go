@@ -31,22 +31,22 @@ func (d *PacketCodec) WritePacket(w io.Writer, p packet.Packet) error {
 
 	// write the PacketID to the buffer of data
 	if err := packet.WriteVarInt(buff, p.ID()); err != nil {
-		return fmt.Errorf("error encoding PacketID: %w", err)
+		return fmt.Errorf("encoding PacketID: %w", err)
 	}
 
 	// write the packet data
 	if err := p.Encode(buff); err != nil {
-		return fmt.Errorf("error encoding Packet to buffer: %w", err)
+		return fmt.Errorf("encoding Packet to buffer: %w", err)
 	}
 
 	// write the buffer length
 	if err := packet.WriteVarInt(w, buff.Len()); err != nil {
-		return fmt.Errorf("error encoding buffer length: %w", err)
+		return fmt.Errorf("encoding buffer length: %w", err)
 	}
 
 	// write the buffer -> len (ID+data), ID, data
 	if _, err := w.Write(buff.Bytes()); err != nil {
-		return fmt.Errorf("error writing buffer to Writer: %w", err)
+		return fmt.Errorf("writing buffer to Writer: %w", err)
 	}
 
 	return nil

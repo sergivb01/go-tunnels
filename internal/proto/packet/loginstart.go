@@ -13,7 +13,7 @@ type LoginStart struct {
 // Encode encodes the LoginStart
 func (s *LoginStart) Encode(w io.Writer) error {
 	if err := WriteString(w, s.Name); err != nil {
-		return fmt.Errorf("error encoding Json: %w", err)
+		return fmt.Errorf("encoding Json: %w", err)
 	}
 	return nil
 }
@@ -24,7 +24,7 @@ func (s *LoginStart) Decode(r io.Reader) error {
 
 	s.Name, err = ReadString(r)
 	if err != nil {
-		return fmt.Errorf("error reading Json: %w", err)
+		return fmt.Errorf("reading Json: %w", err)
 	}
 
 	return nil

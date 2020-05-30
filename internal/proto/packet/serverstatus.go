@@ -32,7 +32,7 @@ const baseFormat = "{\"version\": {\"name\": \"%s\",\"protocol\": %d},\"players\
 // Encode encodes the ServerStatus
 func (s *ServerStatus) Encode(w io.Writer) error {
 	if err := WriteString(w, fmt.Sprintf(baseFormat, s.ServerName, s.Protocol, s.Motd, s.Favicon)); err != nil {
-		return fmt.Errorf("error encoding Json: %w", err)
+		return fmt.Errorf("encoding Json: %w", err)
 	}
 	return nil
 }
