@@ -38,7 +38,10 @@ func NewConnector(configFile string) (*MCServer, error) {
 		logLevel = zerolog.DebugLevel
 	}
 
-	var w io.Writer = zerolog.NewConsoleWriter()
+	var w io.Writer = &zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		TimeFormat: time.RFC3339,
+	}
 	if cfg.Production {
 		w = os.Stdout
 	}
