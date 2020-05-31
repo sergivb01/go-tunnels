@@ -3,7 +3,7 @@ before:
     - go mod download
     #- go generate ./...
 builds:
-  - main: ./cmd/main
+  - main: ./cmd
     binary: go-tunnels
     env:
       - CGO_ENABLED=0
