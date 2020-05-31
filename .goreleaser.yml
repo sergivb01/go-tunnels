@@ -1,7 +1,3 @@
-before:
-  hooks:
-    - go mod download
-    #- go generate ./...
 builds:
   - main: ./cmd
     binary: go-tunnels
@@ -21,19 +17,11 @@ builds:
       - 7
 archives:
   - format: gz
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-checksum:
-  name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ .Tag }}-next"
+    files:
+      - none*
 changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
