@@ -1,3 +1,6 @@
+before:
+  hooks:
+    - go mod download
 builds:
   - main: ./cmd
     binary: go-tunnels
@@ -5,10 +8,8 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
       - windows
     goarch:
-      - 386
       - amd64
       - arm
       - arm64
@@ -16,12 +17,20 @@ builds:
       - 6
       - 7
 archives:
-  - format: gz
-    files:
-      - none*
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format: gz
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+checksum:
+  name_template: '{{ .ProjectName }}_checksums.txt'
 changelog:
   sort: asc
   filters:
     exclude:
       - "^docs:"
       - "^test:"
+      - "Merge pull request"
+      - "Merge branch"
