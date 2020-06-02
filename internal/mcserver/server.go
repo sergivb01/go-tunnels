@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -72,6 +74,15 @@ func (s *MCServer) Start(ctx context.Context) error {
 		return err
 	}
 	s.log.Info().Str("listenAddress", s.cfg.Listen).Msg("listening for MC client connections")
+
+	if s.cfg.Debug {
+		go func() {
+			s.log.Info().Str("listenAddress", ":8080").Msg("listening for http pprof")
+			if err := http.ListenAndServe(":8080", nil); err != nil {
+				s.log.Fatal().Err(err).Msg("listening to :8080 for http pprof")
+			}
+		}()
+	}
 
 	return s.acceptConnections(ctx, ln)
 }
