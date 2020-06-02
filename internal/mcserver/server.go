@@ -7,7 +7,7 @@ import (
 	"net"
 	"net/http"
 	// only used when debug is enabled in config
-	_ "net/http/pprof"
+	_ "net/http/pprof" // #nosec
 	"os"
 	"time"
 
@@ -79,7 +79,7 @@ func (s MCServer) Start(ctx context.Context) error {
 	if s.cfg.Debug {
 		go func() {
 			s.log.Info().Str("listenAddress", "localhost:6060").Msg("listening for http pprof")
-			if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			if err := http.ListenAndServe("localhost:6060", nil); err != nil { // #nosec G108
 				s.log.Fatal().Err(err).Msg("listening http for pprof")
 			}
 		}()
