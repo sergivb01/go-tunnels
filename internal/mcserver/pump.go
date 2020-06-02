@@ -6,7 +6,7 @@ import (
 	"net"
 )
 
-func (s *MCServer) pumpConnections(ctx context.Context, frontendConn, backendConn net.Conn) {
+func (s MCServer) pumpConnections(ctx context.Context, frontendConn, backendConn net.Conn) {
 	clientAddr := frontendConn.RemoteAddr().String()
 	defer s.log.Debug().
 		Str("client", clientAddr).
@@ -29,7 +29,7 @@ func (s *MCServer) pumpConnections(ctx context.Context, frontendConn, backendCon
 	}
 }
 
-func (s *MCServer) pumpFrames(incoming io.Reader, outgoing io.Writer, errors chan<- error, from, to string, clientAddr string) {
+func (s MCServer) pumpFrames(incoming io.Reader, outgoing io.Writer, errors chan<- error, from, to string, clientAddr string) {
 	amount, err := io.Copy(outgoing, incoming)
 	if err != nil {
 		errors <- err

@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	// only used when debug is enabled in config
 	_ "net/http/pprof"
 	"os"
 	"time"
@@ -62,7 +63,7 @@ func NewConnector(configFile string) (*MCServer, error) {
 }
 
 // Start starts listening for new connections
-func (s *MCServer) Start(ctx context.Context) error {
+func (s MCServer) Start(ctx context.Context) error {
 	addr, err := net.ResolveTCPAddr("tcp", s.cfg.Listen)
 	if err != nil {
 		return fmt.Errorf("resolving local adderss: %w", err)
@@ -87,7 +88,7 @@ func (s *MCServer) Start(ctx context.Context) error {
 	return s.acceptConnections(ctx, ln)
 }
 
-func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) error {
+func (s MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) error {
 	bucket := ratelimit.NewBucketWithRate(float64(s.cfg.Ratelimit.Rate), int64(s.cfg.Ratelimit.Capacity))
 
 	for {
@@ -107,7 +108,7 @@ func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) e
 	}
 }
 
-func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
+func (s MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
 	defer func() {
 		if err := frontendConn.Close(); err != nil {
 			s.log.Warn().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("closing frontend connection")
@@ -180,7 +181,7 @@ func (s *MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCo
 	s.findAndConnectBackend(ctx, frontendConn, h, t)
 }
 
-func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
+func (s MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
 	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
 
 	login := &packet.LoginStart{}
@@ -248,7 +249,7 @@ func (s *MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.
 	log.Info().Str("sessionDuration", time.Since(t).String()).Msg("pipe with remote closed")
 }
 
-// func (s *MCServer) kickError(w io.Writer, reason string, err error) {
+// func (s MCServer) kickError(w io.Writer, reason string, err error) {
 // 	_ = s.packetCoder.WritePacket(w, &packet.LoginDisconnect{
 // 		Reason: "[\"\",{\"text\":\"Minebreach\",\"bold\":true,\"color\":\"blue\"},{\"text\":\" Tunnels\\n\"},{\"text\":\"Error! " + reason + ":\",\"color\":\"red\"},{\"text\":\"\\n\"},{\"text\":\"" + err.Error() + "\",\"color\":\"yellow\"}]",
 // 	})
