@@ -78,9 +78,9 @@ func (s MCServer) Start(ctx context.Context) error {
 
 	if s.cfg.Debug {
 		go func() {
-			s.log.Info().Str("listenAddress", ":8080").Msg("listening for http pprof")
-			if err := http.ListenAndServe(":8080", nil); err != nil {
-				s.log.Fatal().Err(err).Msg("listening to :8080 for http pprof")
+			s.log.Info().Str("listenAddress", "localhost:6060").Msg("listening for http pprof")
+			if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+				s.log.Fatal().Err(err).Msg("listening http for pprof")
 			}
 		}()
 	}
