@@ -215,7 +215,7 @@ func (s MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.T
 	log = log.With().Str("host", host).Logger()
 	log.Debug().Str("hostPort", addr.String()).Msg("found backend for connection")
 
-	remote, err := net.DialTCP("tcp", nil, addr)
+	remote, err := net.DialTimeout("tcp", addr.String(), time.Second)
 	if err != nil {
 		log.Error().Err(err).Msg("unable to connect to backend")
 		return
@@ -227,7 +227,7 @@ func (s MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.T
 		}
 	}()
 
-	if err := remote.SetNoDelay(true); err != nil {
+	if err := remote.(*net.TCPConn).SetNoDelay(true); err != nil {
 		log.Warn().Err(err).Msg("setting TCPNoDelay to remote")
 	}
 

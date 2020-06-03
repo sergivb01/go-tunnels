@@ -12,6 +12,7 @@ func (s MCServer) resolveServerAddress(serverAddress string) (string, *net.TCPAd
 		h    = serverAddress[:len(serverAddress)-len(s.cfg.Domain)-1]
 		port = defaultMCPort
 	)
+
 	_, addrs, err := net.LookupSRV("minecraft", "tcp", h)
 	if err == nil && len(addrs) != 0 {
 		h, port = addrs[0].Target, strconv.Itoa(int(addrs[0].Port))

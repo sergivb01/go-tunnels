@@ -8,9 +8,7 @@ import (
 
 func (s MCServer) pumpConnections(ctx context.Context, frontendConn, backendConn net.Conn) {
 	clientAddr := frontendConn.RemoteAddr().String()
-	defer s.log.Debug().
-		Str("client", clientAddr).
-		Str("backendConn", backendConn.RemoteAddr().String()).
+	defer s.log.Debug().Str("client", clientAddr).Str("backendConn", backendConn.RemoteAddr().String()).
 		Msg("closing backend connection")
 
 	errors := make(chan error, 2)
@@ -21,8 +19,7 @@ func (s MCServer) pumpConnections(ctx context.Context, frontendConn, backendConn
 	case err := <-errors:
 		if err != io.EOF {
 			s.log.Error().Err(err).Str("client", clientAddr).
-				Str("backend", backendConn.RemoteAddr().String()).
-				Msg("on connection relay")
+				Str("backend", backendConn.RemoteAddr().String()).Msg("on connection relay")
 		}
 	case <-ctx.Done():
 		s.log.Debug().Msg("received context cancellation")
@@ -34,11 +31,9 @@ func (s MCServer) pumpFrames(incoming io.Reader, outgoing io.Writer, errors chan
 	if err != nil {
 		errors <- err
 	} else {
-		// successful io.Copy return nil error, not EOF… to simulate that to trigger outer handling
+		// successful io.Copy return nil error, not EOF to simulate that to trigger outer handling
 		errors <- io.EOF
 	}
-	s.log.Debug().
-		Str("client", clientAddr).
-		Int64("amount", amount).
+	s.log.Debug().Str("client", clientAddr).Int64("amount", amount).
 		Msgf("finished relay %s->%s", from, to)
 }
