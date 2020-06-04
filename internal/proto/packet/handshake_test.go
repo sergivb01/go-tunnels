@@ -74,7 +74,7 @@ func TestHandshake_EncodeForge(t *testing.T) {
 		return
 	}
 
-	if "server.com.tunnel.sergivos.dev" != dH.ServerAddress {
+	if dH.ServerAddress != "server.com.tunnel.sergivos.dev" {
 		t.Errorf("Mismatch error, expected %q but got %q", h.ServerAddress, dH.ServerAddress)
 		return
 	}
