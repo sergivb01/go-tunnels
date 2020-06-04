@@ -3,6 +3,12 @@ package packet
 import (
 	"fmt"
 	"io"
+	"strings"
+)
+
+const (
+	forgeAddressSuffix  = "\x00FML\x00"
+	forge2AddressSuffix = "\x00FML2\x00"
 )
 
 // Handshake specifies the https://wiki.vg/Protocol#Handshake
@@ -47,6 +53,8 @@ func (h *Handshake) Decode(r io.Reader) error {
 	if err != nil {
 		return fmt.Errorf("reading ServerAddress: %w", err)
 	}
+	h.ServerAddress = strings.TrimSuffix(h.ServerAddress, forgeAddressSuffix)
+	h.ServerAddress = strings.TrimSuffix(h.ServerAddress, forge2AddressSuffix)
 
 	h.ServerPort, err = ReadUint16(r)
 	if err != nil {
