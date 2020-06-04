@@ -2,6 +2,7 @@
 
 ### Performance
  * [Gotta go fast](https://bravenewgeek.com/so-you-wanna-go-fast/)
+ * [Go Networking Patterns](https://youtu.be/afSiVelXDTQ)
 
 ### Minecraft
  * [GO Minecraft Packets](https://github.com/LilyPad/GoLilyPad/tree/0b14610d633f0ffd0af922b0357a24508e2b6cbc/packet/minecraft)

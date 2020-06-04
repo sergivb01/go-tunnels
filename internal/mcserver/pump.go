@@ -34,6 +34,6 @@ func (s MCServer) pumpFrames(incoming io.Reader, outgoing io.Writer, errors chan
 		// successful io.Copy return nil error, not EOF to simulate that to trigger outer handling
 		errors <- io.EOF
 	}
-	s.log.Debug().Str("client", clientAddr).Int64("amount", amount).
+	s.log.Info().Str("client", clientAddr).Int64("amount", amount).
 		Msgf("finished relay %s->%s", from, to)
 }
