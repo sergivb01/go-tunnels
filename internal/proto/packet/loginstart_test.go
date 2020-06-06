@@ -26,18 +26,18 @@ func TestLoginStart_Encode(t *testing.T) {
 	}
 }
 
-func BenchmarkLoginStart_Encode(t *testing.B) {
+func BenchmarkLoginStart_Encode(b *testing.B) {
 	l := &LoginStart{Name: "sergivb01"}
 
 	w := &bytes.Buffer{}
-	for i := 0; i < t.N; i++ {
+	for i := 0; i < b.N; i++ {
 		if err := l.Encode(w); err != nil {
-			t.Errorf("Encode() error %v", err)
+			b.Errorf("Encode() error %v", err)
 			return
 		}
 
 		if err := l.Decode(w); err != nil {
-			t.Errorf("Decode() error %v", err)
+			b.Errorf("Decode() error %v", err)
 			return
 		}
 

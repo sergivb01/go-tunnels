@@ -85,7 +85,7 @@ func TestHandshake_EncodeForge(t *testing.T) {
 	}
 }
 
-func BenchmarkHandshake_Encode(t *testing.B) {
+func BenchmarkHandshake_Encode(b *testing.B) {
 	h := &Handshake{
 		ProtocolVersion: 47,
 		ServerAddress:   "rizonmc.net",
@@ -94,14 +94,14 @@ func BenchmarkHandshake_Encode(t *testing.B) {
 	}
 
 	w := &bytes.Buffer{}
-	for i := 0; i < t.N; i++ {
+	for i := 0; i < b.N; i++ {
 		if err := h.Encode(w); err != nil {
-			t.Errorf("Encode() error %v", err)
+			b.Errorf("Encode() error %v", err)
 			return
 		}
 
 		if err := h.Decode(w); err != nil {
-			t.Errorf("Decode() error %v", err)
+			b.Errorf("Decode() error %v", err)
 			return
 		}
 

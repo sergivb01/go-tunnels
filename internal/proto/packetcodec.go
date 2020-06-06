@@ -14,8 +14,8 @@ type PacketCodec struct {
 }
 
 // NewPacketCodec returns a new PacketCodec
-func NewPacketCodec() PacketCodec {
-	return PacketCodec{
+func NewPacketCodec() *PacketCodec {
+	return &PacketCodec{
 		bpool: &BufferPool{
 			pool: &sync.Pool{
 				New: NewBuffer,

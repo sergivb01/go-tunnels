@@ -15,13 +15,13 @@ func TestLoginDisconnect_Encode(t *testing.T) {
 	}
 }
 
-func BenchmarkLoginDisconnect_Encode(t *testing.B) {
+func BenchmarkLoginDisconnect_Encode(b *testing.B) {
 	p := &LoginStart{Name: "sergivb01"}
 
 	w := &bytes.Buffer{}
-	for i := 0; i < t.N; i++ {
+	for i := 0; i < b.N; i++ {
 		if err := p.Encode(w); err != nil {
-			t.Errorf("Encode() error %v", err)
+			b.Errorf("Encode() error %v", err)
 			return
 		}
 

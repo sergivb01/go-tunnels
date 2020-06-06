@@ -25,7 +25,8 @@ var noDeadline time.Time
 // MCServer defines a Minecraft relay server
 type MCServer struct {
 	log         zerolog.Logger
-	packetCoder proto.PacketCodec
+	packetCoder *proto.PacketCodec
+	proxies     *roundRobinSwitcher
 	cfg         Config
 }
 
@@ -54,16 +55,22 @@ func NewConnector(configFile string) (*MCServer, error) {
 		return nil, fmt.Errorf("getting hostname: %w", err)
 	}
 
+	proxies, err := RoundRobinProxySwitcher(cfg.Proxies)
+	if err != nil {
+		return nil, fmt.Errorf("loading proxies: %w", err)
+	}
+
 	return &MCServer{
 		log: zerolog.New(w).With().Str("hostname", hostName).
 			Timestamp().Logger().Level(logLevel),
 		packetCoder: proto.NewPacketCodec(),
+		proxies:     proxies,
 		cfg:         *cfg,
 	}, nil
 }
 
 // Start starts listening for new connections
-func (s MCServer) Start(ctx context.Context) error {
+func (s *MCServer) Start(ctx context.Context) error {
 	addr, err := net.ResolveTCPAddr("tcp", s.cfg.Listen)
 	if err != nil {
 		return fmt.Errorf("resolving local adderss: %w", err)
@@ -88,7 +95,7 @@ func (s MCServer) Start(ctx context.Context) error {
 	return s.acceptConnections(ctx, ln)
 }
 
-func (s MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) error {
+func (s *MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) error {
 	bucket := ratelimit.NewBucketWithRate(float64(s.cfg.Ratelimit.Rate), int64(s.cfg.Ratelimit.Capacity))
 
 	for {
@@ -108,24 +115,24 @@ func (s MCServer) acceptConnections(ctx context.Context, ln *net.TCPListener) er
 	}
 }
 
-func (s MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPConn, t time.Time) {
+func (s *MCServer) handleConnection(ctx context.Context, conn *net.TCPConn, t time.Time) {
 	defer func() {
-		if err := frontendConn.Close(); err != nil {
-			s.log.Warn().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("closing frontend connection")
+		if err := conn.Close(); err != nil {
+			s.log.Warn().Err(err).Str("client", conn.RemoteAddr().String()).Msg("closing client connection")
 		}
 	}()
-	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
+	log := s.log.With().Str("client", conn.RemoteAddr().String()).Logger()
 
-	if err := frontendConn.SetNoDelay(true); err != nil {
-		log.Warn().Err(err).Msg("setting TCPNoDelay to frontendConn")
+	if err := conn.SetNoDelay(true); err != nil {
+		log.Warn().Err(err).Msg("setting TCPNoDelay to conn")
 	}
 
-	if err := frontendConn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
-		log.Error().Err(err).Msg("failed to set read deadline")
+	if err := conn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
+		log.Error().Err(err).Msg("set read deadline")
 		return
 	}
 
-	packetID, err := s.packetCoder.ReadPacket(frontendConn)
+	packetID, err := s.packetCoder.ReadPacket(conn)
 	if err != nil {
 		log.Error().Err(err).Msg("reading packetID")
 		return
@@ -137,14 +144,14 @@ func (s MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCon
 	}
 
 	h := &packet.Handshake{}
-	if err := h.Decode(frontendConn); err != nil {
+	if err := h.Decode(conn); err != nil {
 		log.Error().Err(err).Msg("reading handshake")
 		return
 	}
 
 	if h.State == 1 {
-		// TODO: save this packet in const and send it to frontendConn on error
-		if err := s.packetCoder.WritePacket(frontendConn, &packet.ServerStatus{
+		// TODO: save this packet in const and send it to conn on error
+		if err := s.packetCoder.WritePacket(conn, &packet.ServerStatus{
 			ServerName: "Minebreach",
 			Protocol:   h.ProtocolVersion,
 			Motd:       "§3§lMineBreach Tunnels\n§cError - Unknown hostname",
@@ -153,58 +160,55 @@ func (s MCServer) handleConnection(ctx context.Context, frontendConn *net.TCPCon
 			log.Error().Err(err).Msg("sending custom ServerListPing response")
 		}
 
-		// TODO: check for packetID == packet.PingID
-		_, err := s.packetCoder.ReadPacket(frontendConn)
+		// TODO: ping is not working correctly...
+		packetID, err := s.packetCoder.ReadPacket(conn)
 		if err != nil {
 			log.Error().Err(err).Msg("reading packet after ServerStatus")
 			return
 		}
 
+		log.Info().Int("packetID", packetID).Int("pingPacketID", packet.PingID).Msg("received packet after server status")
+
 		p := &packet.Ping{}
-		if err := p.Decode(frontendConn); err != nil {
+		if err := p.Decode(conn); err != nil {
 			log.Error().Err(err).Msg("reading ping packet")
 			return
 		}
 
-		if err := s.packetCoder.WritePacket(frontendConn, p); err != nil {
+		if err := s.packetCoder.WritePacket(conn, p); err != nil {
 			log.Error().Err(err).Msg("sending ping packet")
 		}
 
 		return
 	}
 
-	if err = frontendConn.SetReadDeadline(noDeadline); err != nil {
-		log.Error().Err(err).Msg("failed to clear read deadline")
+	if err = conn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
+		log.Error().Err(err).Msg("setting deadline before login")
 		return
 	}
 
-	s.findAndConnectBackend(ctx, frontendConn, h, t)
-}
-
-func (s MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.TCPConn, h *packet.Handshake, t time.Time) {
-	log := s.log.With().Str("client", frontendConn.RemoteAddr().String()).Logger()
-
 	login := &packet.LoginStart{}
-	// TODO: cleanup logic
-	if h.State == 2 {
-		packetID, err := s.packetCoder.ReadPacket(frontendConn)
-		if err != nil {
-			log.Error().Err(err).Msg("reading packetID")
-			return
-		}
+	packetID, err = s.packetCoder.ReadPacket(conn)
+	if err != nil {
+		log.Error().Err(err).Msg("reading packetID")
+		return
+	}
 
-		if packetID != packet.HandshakeID {
-			log.Warn().Int("packetID", packetID).Msg("unexpected packet after Handshake in LoginState")
-			return
-		}
+	if packetID != packet.HandshakeID {
+		log.Warn().Int("packetID", packetID).Msg("unexpected packet after Handshake in LoginState")
+		return
+	}
 
-		if err := login.Decode(frontendConn); err != nil {
-			log.Error().Err(err).Msg("decoding LoginStart")
-			return
-		}
+	if err := login.Decode(conn); err != nil {
+		log.Error().Err(err).Msg("decoding LoginStart")
+		return
+	}
+	log = log.With().Str("playerName", login.Name).Logger()
+	log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
 
-		log = log.With().Str("playerName", login.Name).Logger()
-		log.Debug().Str("playerName", login.Name).Msg("read playerName from LoginStart")
+	if err = conn.SetReadDeadline(noDeadline); err != nil {
+		log.Error().Err(err).Msg("clear read deadline")
+		return
 	}
 
 	host, addr, err := s.resolveServerAddress(h.ServerAddress)
@@ -215,42 +219,56 @@ func (s MCServer) findAndConnectBackend(ctx context.Context, frontendConn *net.T
 	log = log.With().Str("host", host).Logger()
 	log.Debug().Str("hostPort", addr.String()).Msg("found backend for connection")
 
-	remote, err := net.DialTimeout("tcp", addr.String(), time.Second)
+	dialer, proxyURL, err := s.proxies.GetProxy()
 	if err != nil {
+		s.kickError(conn, fmt.Sprintf("Proxy Error %s", proxyURL), err)
+		log.Error().Err(err).Msg("getting dialer for proxy")
+		return
+	}
+	log.Debug().Str("proxy", proxyURL).Msg("received dialer for proxy")
+	log = log.With().Str("proxy", proxyURL).Logger()
+
+	remote, err := dialer.Dial("tcp", addr.String())
+	if err != nil {
+		s.kickError(conn, fmt.Sprintf("Proxy Error %s", proxyURL), err)
 		log.Error().Err(err).Msg("unable to connect to backend")
 		return
 	}
 
 	defer func() {
 		if err := remote.Close(); err != nil {
-			s.log.Warn().Err(err).Str("client", frontendConn.RemoteAddr().String()).Msg("closing remote connection")
+			s.log.Warn().Err(err).Str("client", conn.RemoteAddr().String()).Msg("closing remote connection")
 		}
 	}()
 
-	if err := remote.(*net.TCPConn).SetNoDelay(true); err != nil {
+	tcpConn, ok := remote.(*net.TCPConn)
+	if !ok {
+		log.Error().Err(err).Msg("backend connection is not *net.TCPConn")
+		return
+	}
+
+	if err := tcpConn.SetNoDelay(true); err != nil {
 		log.Warn().Err(err).Msg("setting TCPNoDelay to remote")
 	}
 
 	h.ServerAddress = host
-	if err := s.packetCoder.WritePacket(remote, h); err != nil {
-		log.Error().Err(err).Msg("failed to relay handshake!")
+	if err := s.packetCoder.WritePacket(tcpConn, h); err != nil {
+		log.Error().Err(err).Msg("relay handshake!")
 		return
 	}
 
-	if h.State == 2 {
-		if err := s.packetCoder.WritePacket(remote, login); err != nil {
-			log.Error().Err(err).Msg("failed to relay login!")
-			return
-		}
+	if err := s.packetCoder.WritePacket(tcpConn, login); err != nil {
+		log.Error().Err(err).Msg("relay login!")
+		return
 	}
 
 	log.Info().Str("took", time.Since(t).String()).Msg("pipe with remote started")
-	s.pumpConnections(ctx, frontendConn, remote)
+	s.pumpConnections(ctx, conn, tcpConn)
 	log.Info().Str("sessionDuration", time.Since(t).String()).Msg("pipe with remote closed")
 }
 
-// func (s MCServer) kickError(w io.Writer, reason string, err error) {
-// 	_ = s.packetCoder.WritePacket(w, &packet.LoginDisconnect{
-// 		Reason: "[\"\",{\"text\":\"Minebreach\",\"bold\":true,\"color\":\"blue\"},{\"text\":\" Tunnels\\n\"},{\"text\":\"Error! " + reason + ":\",\"color\":\"red\"},{\"text\":\"\\n\"},{\"text\":\"" + err.Error() + "\",\"color\":\"yellow\"}]",
-// 	})
-// }
+func (s *MCServer) kickError(w io.Writer, reason string, err error) {
+	_ = s.packetCoder.WritePacket(w, &packet.LoginDisconnect{
+		Reason: "[\"\",{\"text\":\"Minebreach\",\"bold\":true,\"color\":\"blue\"},{\"text\":\" Tunnels\\n\"},{\"text\":\"Error! " + reason + ":\",\"color\":\"red\"},{\"text\":\"\\n\"},{\"text\":\"" + err.Error() + "\",\"color\":\"yellow\"}]",
+	})
+}

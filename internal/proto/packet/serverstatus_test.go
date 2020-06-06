@@ -20,7 +20,7 @@ func TestServerStatus_Encode(t *testing.T) {
 	}
 }
 
-func BenchmarkServerStatus_Encode(t *testing.B) {
+func BenchmarkServerStatus_Encode(b *testing.B) {
 	s := &ServerStatus{
 		ServerName: "MineBreach",
 		Protocol:   47,
@@ -29,9 +29,9 @@ func BenchmarkServerStatus_Encode(t *testing.B) {
 	}
 
 	w := &bytes.Buffer{}
-	for i := 0; i < t.N; i++ {
+	for i := 0; i < b.N; i++ {
 		if err := s.Encode(w); err != nil {
-			t.Errorf("Encode() error %v", err)
+			b.Errorf("Encode() error %v", err)
 			return
 		}
 

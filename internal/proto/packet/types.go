@@ -3,9 +3,17 @@ package packet
 import (
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math"
+)
+
+var (
+	// ErrVarIntTooLong VarInt is too long to encode or is higher than a limit
+	ErrVarIntTooLong = errors.New("VarInt is too long")
+	// ErrStringLengthNegative StringLength cannot be negative
+	ErrStringLengthNegative = errors.New("string length is below zero")
+	// ErrStringTooLong String is too long to encode or is higher than a limit
+	ErrStringTooLong = errors.New("string length is above maximum")
 )
 
 // ReadString reads an string from an io.Reader
@@ -17,14 +25,28 @@ func ReadString(r io.Reader) (val string, err error) {
 	return ReadStringWithSize(r, length)
 }
 
-// ReadStringWithSize reads an string with a defined length from an io.Reader
-func ReadStringWithSize(r io.Reader, length int) (val string, err error) {
-	if length < 0 {
-		err = fmt.Errorf("string length is below zero %d", length)
+// ReadStringLimit reads an string from an io.Reader with a max length
+func ReadStringLimit(r io.Reader, maxLength int) (val string, err error) {
+	length, err := ReadVarInt(r)
+	if err != nil {
 		return
 	}
-	if length > 1048576 { // 2^(21-1)
-		err = fmt.Errorf("string length is above maximum %d", length)
+	return ReadStringWithSizeLimit(r, length, maxLength)
+}
+
+// ReadStringWithSize reads an string with a defined length from an io.Reader
+func ReadStringWithSize(r io.Reader, length int) (val string, err error) {
+	return ReadStringWithSizeLimit(r, length, 1048576)
+}
+
+// ReadStringWithSizeLimit reads an string with a defined and max length from an io.Reader
+func ReadStringWithSizeLimit(r io.Reader, length, maxLength int) (val string, err error) {
+	if length < 0 {
+		err = ErrStringLengthNegative
+		return
+	}
+	if length > maxLength { // 2^(21-1)
+		err = ErrStringTooLong
 		return
 	}
 	bytes := make([]byte, length)
@@ -47,6 +69,17 @@ func WriteString(w io.Writer, val string) (err error) {
 	return
 }
 
+// WriteString writes an string to an io.Writer
+func WriteStringNew(w io.Writer, val string) (err error) {
+	bytes := []byte(val)
+	err = WriteVarIntNew(w, len(bytes))
+	if err != nil {
+		return
+	}
+	_, err = w.Write(bytes)
+	return
+}
+
 // ReadVarInt reads a VarInt from an io.Reader
 func ReadVarInt(r io.Reader) (result int, err error) {
 	var bytes byte = 0
@@ -59,7 +92,7 @@ func ReadVarInt(r io.Reader) (result int, err error) {
 		result |= int(uint(b&0x7F) << uint(bytes*7))
 		bytes++
 		if bytes > 5 {
-			err = errors.New("VarInt is too long")
+			err = ErrVarIntTooLong
 			return
 		}
 		if (b & 0x80) == 0x80 {
@@ -80,6 +113,14 @@ func WriteVarInt(w io.Writer, val int) (err error) {
 		val >>= 7
 	}
 	err = WriteUint8(w, byte(val))
+	return
+}
+
+// WriteVarIntNew writes a VarInt to an io.Writer
+func WriteVarIntNew(w io.Writer, val int) (err error) {
+	var buff [5]byte
+	n := binary.PutUvarint(buff[:], uint64(val))
+	_, err = w.Write(buff[:n])
 	return
 }
 

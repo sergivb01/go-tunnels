@@ -6,27 +6,27 @@ import (
 	"net"
 )
 
-func (s MCServer) pumpConnections(ctx context.Context, frontendConn, backendConn net.Conn) {
-	clientAddr := frontendConn.RemoteAddr().String()
-	defer s.log.Debug().Str("client", clientAddr).Str("backendConn", backendConn.RemoteAddr().String()).
+func (s *MCServer) pumpConnections(ctx context.Context, conn, remote *net.TCPConn) {
+	clientAddr := conn.RemoteAddr().String()
+	defer s.log.Debug().Str("client", clientAddr).Str("remote", remote.RemoteAddr().String()).
 		Msg("closing backend connection")
 
 	errors := make(chan error, 2)
-	go s.pumpFrames(backendConn, frontendConn, errors, "backend", "frontend", clientAddr)
-	go s.pumpFrames(frontendConn, backendConn, errors, "frontend", "backend", clientAddr)
+	go s.pumpFrames(remote, conn, errors, "backend", "client", clientAddr)
+	go s.pumpFrames(conn, remote, errors, "client", "backend", clientAddr)
 
 	select {
 	case err := <-errors:
 		if err != io.EOF {
 			s.log.Error().Err(err).Str("client", clientAddr).
-				Str("backend", backendConn.RemoteAddr().String()).Msg("on connection relay")
+				Str("backend", remote.RemoteAddr().String()).Msg("on connection relay")
 		}
 	case <-ctx.Done():
 		s.log.Debug().Msg("received context cancellation")
 	}
 }
 
-func (s MCServer) pumpFrames(incoming io.Reader, outgoing io.Writer, errors chan<- error, from, to string, clientAddr string) {
+func (s *MCServer) pumpFrames(incoming, outgoing *net.TCPConn, errors chan<- error, from, to, clientAddr string) {
 	amount, err := io.Copy(outgoing, incoming)
 	if err != nil {
 		errors <- err

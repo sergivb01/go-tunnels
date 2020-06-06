@@ -9,10 +9,11 @@ import (
 
 // Config specifies the config for MCServer
 type Config struct {
-	Domain     string `json:"domain"`
-	Listen     string `json:"listen"`
-	Debug      bool   `json:"debug"`
-	Production bool   `json:"production"`
+	Domain     string   `json:"domain"`
+	Listen     string   `json:"listen"`
+	Debug      bool     `json:"debug"`
+	Production bool     `json:"production"`
+	Proxies    []string `json:"proxies"`
 	Ratelimit  struct {
 		Rate     int `json:"rate"`
 		Capacity int `json:"capacity"`

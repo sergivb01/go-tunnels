@@ -1,7 +1,11 @@
 # Tunnel
- * [Cheatsheet](https://github.com/fedir/go-tooling-cheat-sheet/blob/master/go-tooling-cheat-sheet.pdf)
+ * [Cheat sheet](https://github.com/fedir/go-tooling-cheat-sheet/blob/master/go-tooling-cheat-sheet.pdf)
+
+### Golang
+ * [PKI for Gophers](https://youtu.be/VwPQKS9Njv0)
 
 ### Performance
+ * [Auto MAXPROCS](https://github.com/uber-go/automaxprocs)
  * [Gotta go fast](https://bravenewgeek.com/so-you-wanna-go-fast/)
  * [Go Networking Patterns](https://youtu.be/afSiVelXDTQ)
  * [Ratelimit](https://github.com/fujiwara/shapeio)
