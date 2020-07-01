@@ -1,11 +1,11 @@
-package proto
+package mcproto
 
 import (
 	"bytes"
 	"io/ioutil"
 	"testing"
 
-	"github.com/minebreach/go-tunnels/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/pkg/mcproto/packet"
 )
 
 // TODO: add Read method with a const byte slice of an example handshake

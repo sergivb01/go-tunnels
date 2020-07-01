@@ -1,11 +1,11 @@
-package proto
+package mcproto
 
 import (
 	"fmt"
 	"io"
 	"sync"
 
-	"github.com/minebreach/go-tunnels/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/pkg/mcproto/packet"
 )
 
 // PacketCodec manages the (de)code-ing of Minecraft packets

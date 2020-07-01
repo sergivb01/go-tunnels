@@ -1,4 +1,4 @@
-package proto
+package mcproto
 
 // Minecraft Packet Protocol
 // http://wiki.vg/Protocol#Without_compression:
