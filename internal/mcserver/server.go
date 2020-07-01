@@ -14,8 +14,8 @@ import (
 	"github.com/juju/ratelimit"
 	"github.com/rs/zerolog"
 
-	"github.com/minebreach/go-tunnels/internal/proto"
-	"github.com/minebreach/go-tunnels/internal/proto/packet"
+	"github.com/minebreach/go-tunnels/pkg/mcproto"
+	"github.com/minebreach/go-tunnels/pkg/mcproto/packet"
 )
 
 const handshakeTimeout = 1 * time.Second
@@ -25,7 +25,7 @@ var noDeadline time.Time
 // MCServer defines a Minecraft relay server
 type MCServer struct {
 	log         zerolog.Logger
-	packetCoder *proto.PacketCodec
+	packetCoder *mcproto.PacketCodec
 	proxies     *roundRobinSwitcher
 	cfg         Config
 }
@@ -63,7 +63,7 @@ func NewConnector(configFile string) (*MCServer, error) {
 	return &MCServer{
 		log: zerolog.New(w).With().Str("hostname", hostName).
 			Timestamp().Logger().Level(logLevel),
-		packetCoder: proto.NewPacketCodec(),
+		packetCoder: mcproto.NewPacketCodec(),
 		proxies:     proxies,
 		cfg:         *cfg,
 	}, nil
